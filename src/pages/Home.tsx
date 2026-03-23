@@ -10,7 +10,7 @@ const features = [
   { icon: Zap, title: 'Instant Preview', desc: 'See your changes in real-time as you build' },
   { icon: Download, title: 'Export HTML', desc: 'Download clean, responsive HTML files' },
   { icon: Eye, title: 'One-Click Publish', desc: 'Publish your site with a single click' },
-  { icon: Sparkles, title: '5 Starter Templates', desc: 'SaaS, Portfolio, Business, Restaurant & more' },
+  { icon: Sparkles, title: '100 Starter Templates', desc: 'SaaS, Portfolio, Business, Restaurant — fully editable' },
 ];
 
 export default function Home() {

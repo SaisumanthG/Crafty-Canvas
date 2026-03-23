@@ -1,28 +1,92 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Sparkles, ArrowLeft, FileText, Rocket, User, Building2, UtensilsCrossed, Check } from 'lucide-react';
-import { templates, getTemplate, categoryMap } from '@/lib/templates';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Sparkles, ArrowLeft, Search, FileText, Rocket, Users, Building2, UtensilsCrossed, Layers, Check, Star } from 'lucide-react';
+import { templates, getTemplate, getTemplatesByCategory, type Template } from '@/lib/templates';
 import { getThemesByCategory, applyThemeToComponents, Theme } from '@/lib/themes';
 import { createSite, serializeComponents } from '@/lib/siteStorage';
 import { ThemePicker } from '@/components/editor/ThemePicker';
+import { Navbar } from '@/components/layout/Navbar';
 
-const templateIcons: Record<string, any> = { blank: FileText, landing: Rocket, portfolio: User, business: Building2, restaurant: UtensilsCrossed };
+const categories = [
+  { id: 'all', label: 'All Templates', icon: Layers, count: 100 },
+  { id: 'saas', label: 'SaaS / Tech', icon: Rocket, count: 25 },
+  { id: 'portfolio', label: 'Portfolio', icon: Star, count: 25 },
+  { id: 'business', label: 'Business', icon: Building2, count: 25 },
+  { id: 'restaurant', label: 'Restaurant', icon: UtensilsCrossed, count: 25 },
+];
+
+function TemplateMiniPreview({ template }: { template: Template }) {
+  const comps = template.getComponents();
+  const navbar = comps.find(c => c.type === 'navbar');
+  const hero = comps.find(c => c.type === 'hero');
+  const bg = hero?.props?.bgColor || navbar?.props?.bgColor || '#0A0A0A';
+  const accent = hero?.props?.accentColor || navbar?.props?.accentColor || '#7C3AED';
+  const textCol = hero?.props?.textColor || '#FFFFFF';
+
+  return (
+    <div className="h-full w-full overflow-hidden rounded-t-lg" style={{ background: bg }}>
+      {/* Mini navbar */}
+      <div className="flex items-center justify-between px-3 py-1.5" style={{ background: navbar?.props?.bgColor || bg }}>
+        <div className="h-1.5 w-10 rounded" style={{ background: accent }} />
+        <div className="flex gap-1">
+          {[1,2,3].map(i => <div key={i} className="h-1 w-5 rounded" style={{ background: textCol, opacity: 0.3 }} />)}
+        </div>
+      </div>
+      {/* Mini hero */}
+      <div className="px-3 py-3">
+        <div className="mb-1 h-2 w-3/4 rounded" style={{ background: textCol, opacity: 0.9 }} />
+        <div className="mb-1 h-1.5 w-full rounded" style={{ background: textCol, opacity: 0.3 }} />
+        <div className="mb-2 h-1.5 w-2/3 rounded" style={{ background: textCol, opacity: 0.3 }} />
+        <div className="h-3 w-12 rounded" style={{ background: accent }} />
+      </div>
+      {/* Mini sections */}
+      <div className="flex gap-1 px-3 pb-1">
+        {[1,2,3].map(i => (
+          <div key={i} className="flex-1 rounded p-1" style={{ background: textCol, opacity: 0.05 }}>
+            <div className="mb-0.5 h-1 w-full rounded" style={{ background: accent, opacity: 0.5 }} />
+            <div className="h-0.5 w-full rounded" style={{ background: textCol, opacity: 0.2 }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function NewSite() {
   const navigate = useNavigate();
-  const [step, setStep] = useState<1 | 2>(1);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('');
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [search, setSearch] = useState('');
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
   const [title, setTitle] = useState('');
 
-  const category = categoryMap[selectedTemplate] || 'saas';
+  const filteredTemplates = useMemo(() => {
+    let list = getTemplatesByCategory(activeCategory);
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(t => t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q));
+    }
+    return list;
+  }, [activeCategory, search]);
+
+  const handleSelectTemplate = (t: Template) => {
+    if (t.id === 'blank') {
+      const site = createSite({ title: 'Untitled Site', category: 'saas', components_json: '[]', global_styles_json: '{}' });
+      navigate(`/editor?id=${site.id}`);
+      return;
+    }
+    setSelectedTemplate(t);
+    setStep(2);
+  };
 
   const handleCreate = () => {
-    const { components } = getTemplate(selectedTemplate);
+    if (!selectedTemplate) return;
+    const { components, category } = getTemplate(selectedTemplate.id);
     const themed = selectedTheme ? applyThemeToComponents(components, selectedTheme) : components;
     const site = createSite({
-      title: title || templates.find(t => t.id === selectedTemplate)?.name + ' Site' || 'Untitled Site',
+      title: title || selectedTemplate.name + ' Site',
       category,
       components_json: serializeComponents(themed),
       global_styles_json: selectedTheme ? JSON.stringify(selectedTheme) : '{}',
@@ -32,102 +96,142 @@ export default function NewSite() {
 
   return (
     <div className="min-h-screen bg-landing-bg">
-      <nav className="border-b border-landing-border px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
+      <Navbar />
+
+      {/* Step indicator */}
+      <div className="border-b border-landing-border bg-landing-surface/50">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <div className="flex items-center gap-3">
-            <button onClick={() => step === 2 ? setStep(1) : navigate('/')} className="text-landing-text transition-colors hover:text-landing-bright">
+            <button onClick={() => step > 1 ? setStep((step - 1) as 1 | 2) : navigate('/')} className="rounded-lg p-1.5 text-landing-text transition-colors hover:bg-landing-border hover:text-landing-bright">
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Sparkles className="h-4 w-4 text-primary-foreground" />
-              </div>
-              <span className="text-lg font-bold text-landing-bright">New Site</span>
+              <Sparkles className="h-5 w-5 text-primary" />
+              <span className="text-lg font-bold text-landing-bright">Create New Site</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 text-sm text-landing-text">
-            <span className={step >= 1 ? 'text-primary font-medium' : ''}>1. Template</span>
-            <span>→</span>
-            <span className={step >= 2 ? 'text-primary font-medium' : ''}>2. Theme</span>
+          <div className="flex items-center gap-2 text-sm">
+            {['Template', 'Customize'].map((label, i) => (
+              <div key={label} className="flex items-center gap-2">
+                {i > 0 && <span className="text-landing-text/40">→</span>}
+                <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${step > i ? 'bg-primary/15 text-primary font-medium' : 'text-landing-text'}`}>
+                  {step > i + 1 && <Check className="h-3 w-3" />}
+                  {label}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
-      </nav>
+      </div>
 
-      {step === 1 && (
-        <div className="mx-auto max-w-4xl px-6 py-16">
-          <h1 className="mb-2 text-3xl font-bold text-landing-bright">Choose a Template</h1>
-          <p className="mb-10 text-landing-text">Pick a starting point for your website.</p>
-          <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-            {templates.map((t, i) => {
-              const Icon = templateIcons[t.id] || FileText;
-              return (
-                <motion.button key={t.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-                  onClick={() => { setSelectedTemplate(t.id); setStep(2); }}
-                  className="group flex flex-col items-center rounded-xl border border-landing-border bg-landing-surface p-6 text-center transition-all hover:border-primary/50 hover:bg-landing-border">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-landing-bg transition-colors group-hover:bg-primary/10">
-                    <Icon className="h-7 w-7 text-landing-text transition-colors group-hover:text-primary" />
+      <AnimatePresence mode="wait">
+        {/* STEP 1: Browse Templates */}
+        {step === 1 && (
+          <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mx-auto max-w-7xl px-6 py-8">
+            <div className="mb-6">
+              <h1 className="mb-1 text-2xl font-bold text-landing-bright">Choose a Template</h1>
+              <p className="text-sm text-landing-text">100 professionally designed templates across 4 categories. Every element is fully editable.</p>
+            </div>
+
+            {/* Category tabs + search */}
+            <div className="mb-6 flex flex-wrap items-center gap-3">
+              {categories.map(cat => {
+                const Icon = cat.icon;
+                return (
+                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)}
+                    className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-all ${activeCategory === cat.id ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20' : 'bg-landing-surface text-landing-text hover:bg-landing-border hover:text-landing-bright border border-landing-border'}`}>
+                    <Icon className="h-4 w-4" />
+                    {cat.label}
+                    <span className={`rounded-full px-1.5 py-0.5 text-xs ${activeCategory === cat.id ? 'bg-primary-foreground/20' : 'bg-landing-border'}`}>{cat.count}</span>
+                  </button>
+                );
+              })}
+              <div className="ml-auto flex items-center gap-2 rounded-lg border border-landing-border bg-landing-surface px-3 py-2">
+                <Search className="h-4 w-4 text-landing-text/50" />
+                <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search templates..."
+                  className="w-48 bg-transparent text-sm text-landing-bright placeholder:text-landing-text/40 focus:outline-none" />
+              </div>
+            </div>
+
+            {/* Blank canvas option */}
+            <motion.button onClick={() => handleSelectTemplate(templates[0])} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+              className="mb-6 flex w-full items-center gap-4 rounded-xl border-2 border-dashed border-landing-border bg-landing-surface/50 p-4 text-left transition-all hover:border-primary/50 hover:bg-landing-surface">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-landing-border">
+                <FileText className="h-6 w-6 text-landing-text" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-landing-bright">Blank Canvas</h3>
+                <p className="text-xs text-landing-text">Start from scratch — drag and drop components to build your own layout</p>
+              </div>
+            </motion.button>
+
+            {/* Template grid */}
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+              {filteredTemplates.map((t, i) => (
+                <motion.button key={t.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.03, 0.5) }}
+                  onClick={() => handleSelectTemplate(t)}
+                  className="group overflow-hidden rounded-xl border border-landing-border bg-landing-surface text-left transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
+                  {/* Live mini preview */}
+                  <div className="aspect-[4/3] overflow-hidden">
+                    <TemplateMiniPreview template={t} />
                   </div>
-                  <h3 className="mb-1 font-semibold text-landing-bright">{t.name}</h3>
-                  <p className="mb-2 text-xs text-landing-text">{t.description}</p>
-                  {t.id !== 'blank' && (
-                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">25 themes</span>
-                  )}
+                  {/* Info */}
+                  <div className="border-t border-landing-border p-3">
+                    <h3 className="mb-0.5 text-sm font-semibold text-landing-bright group-hover:text-primary transition-colors">{t.name}</h3>
+                    <p className="text-xs text-landing-text line-clamp-1">{t.description}</p>
+                    <span className="mt-1.5 inline-block rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{t.category}</span>
+                  </div>
                 </motion.button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {step === 2 && (
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h1 className="mb-1 text-2xl font-bold text-landing-bright">Choose a Theme</h1>
-              <p className="text-sm text-landing-text">Pick a color scheme for your {selectedTemplate} site</p>
+              ))}
             </div>
-          </div>
-          
-          <div className="mb-6">
-            <input
-              type="text"
-              placeholder="Site title (optional)"
-              value={title}
-              onChange={e => setTitle(e.target.value)}
-              className="w-full max-w-sm rounded-lg border border-landing-border bg-landing-surface px-4 py-2.5 text-landing-bright placeholder:text-landing-text/50 focus:border-primary focus:outline-none"
-            />
-          </div>
 
-          {/* Default option */}
-          <button
-            onClick={() => setSelectedTheme(null)}
-            className={`mb-4 flex items-center gap-3 rounded-lg border px-4 py-3 transition-all ${!selectedTheme ? 'border-primary bg-primary/10' : 'border-landing-border bg-landing-surface hover:border-landing-text/30'}`}
-          >
-            {!selectedTheme && <Check className="h-4 w-4 text-primary" />}
-            <span className="text-sm font-medium text-landing-bright">Default (no theme)</span>
-          </button>
+            {filteredTemplates.length === 0 && (
+              <div className="py-20 text-center text-landing-text">No templates match your search.</div>
+            )}
+          </motion.div>
+        )}
 
-          <ThemePicker category={category} selected={selectedTheme} onSelect={setSelectedTheme} columns={5} />
-
-          {/* Selected preview bar */}
-          {selectedTheme && (
-            <div className="mt-6 flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
-              <div className="flex gap-1.5">
-                {[selectedTheme.primary, selectedTheme.bg, selectedTheme.surface, selectedTheme.text, selectedTheme.secondary].map((c, i) => (
-                  <div key={i} className="h-5 w-5 rounded-full border border-landing-border" style={{ background: c }} />
-                ))}
-              </div>
-              <span className="text-sm font-medium text-landing-bright">{selectedTheme.name}</span>
+        {/* STEP 2: Customize (theme + title) */}
+        {step === 2 && selectedTemplate && (
+          <motion.div key="step2" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="mx-auto max-w-6xl px-6 py-8">
+            <div className="mb-6">
+              <h1 className="mb-1 text-2xl font-bold text-landing-bright">Customize: {selectedTemplate.name}</h1>
+              <p className="text-sm text-landing-text">Choose a theme and name your site. Everything can be edited later.</p>
             </div>
-          )}
 
-          <div className="mt-8">
-            <button onClick={handleCreate} className="rounded-xl bg-primary px-8 py-3 font-semibold text-primary-foreground transition-all hover:opacity-90">
-              Create Website →
+            <div className="mb-6">
+              <input type="text" placeholder="Site title (optional)" value={title} onChange={e => setTitle(e.target.value)}
+                className="w-full max-w-sm rounded-lg border border-landing-border bg-landing-surface px-4 py-2.5 text-landing-bright placeholder:text-landing-text/50 focus:border-primary focus:outline-none" />
+            </div>
+
+            {/* Default option */}
+            <button onClick={() => setSelectedTheme(null)}
+              className={`mb-4 flex items-center gap-3 rounded-lg border px-4 py-3 transition-all ${!selectedTheme ? 'border-primary bg-primary/10' : 'border-landing-border bg-landing-surface hover:border-landing-text/30'}`}>
+              {!selectedTheme && <Check className="h-4 w-4 text-primary" />}
+              <span className="text-sm font-medium text-landing-bright">Default theme (template colors)</span>
             </button>
-          </div>
-        </div>
-      )}
+
+            <ThemePicker category={selectedTemplate.category} selected={selectedTheme} onSelect={setSelectedTheme} columns={5} />
+
+            {selectedTheme && (
+              <div className="mt-6 flex items-center gap-4 rounded-lg border border-primary/30 bg-primary/5 px-4 py-3">
+                <div className="flex gap-1.5">
+                  {[selectedTheme.primary, selectedTheme.bg, selectedTheme.surface, selectedTheme.text, selectedTheme.secondary].map((c, i) => (
+                    <div key={i} className="h-5 w-5 rounded-full border border-landing-border" style={{ background: c }} />
+                  ))}
+                </div>
+                <span className="text-sm font-medium text-landing-bright">{selectedTheme.name}</span>
+              </div>
+            )}
+
+            <div className="mt-8">
+              <button onClick={handleCreate} className="rounded-xl bg-primary px-8 py-3 font-semibold text-primary-foreground transition-all hover:opacity-90 shadow-lg shadow-primary/20">
+                Create Website →
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
