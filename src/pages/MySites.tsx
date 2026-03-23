@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Plus, MoreVertical, Pencil, Eye, Trash2, Globe } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Eye, Trash2, Globe } from 'lucide-react';
 import { getAllSites, deleteSite, type Website } from '@/lib/siteStorage';
+import { Navbar } from '@/components/layout/Navbar';
 
 export default function MySites() {
   const navigate = useNavigate();
