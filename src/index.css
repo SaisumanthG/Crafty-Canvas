@@ -55,6 +55,14 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
+  .light-mode {
+    --landing-bg: 0 0% 98%;
+    --landing-surface: 0 0% 100%;
+    --landing-border: 220 13% 87%;
+    --landing-text: 220 10% 40%;
+    --landing-bright: 220 15% 10%;
+  }
+
   .dark {
     --background: 220 13% 8%;
     --foreground: 220 10% 90%;
