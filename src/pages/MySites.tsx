@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, Plus, MoreVertical, Pencil, Eye, Trash2, Globe } from 'lucide-react';
+import { Plus, MoreVertical, Pencil, Eye, Trash2, Globe } from 'lucide-react';
 import { getAllSites, deleteSite, type Website } from '@/lib/siteStorage';
+import { Navbar } from '@/components/layout/Navbar';
 
 export default function MySites() {
   const navigate = useNavigate();
@@ -19,19 +20,12 @@ export default function MySites() {
 
   return (
     <div className="min-h-screen bg-landing-bg">
-      <nav className="border-b border-landing-border px-6 py-4">
-        <div className="mx-auto flex max-w-6xl items-center justify-between">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="h-4 w-4 text-primary-foreground" />
-            </div>
-            <span className="text-lg font-bold text-landing-bright">WebCraft</span>
-          </button>
-          <button onClick={() => navigate('/new')} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
-            <Plus className="h-4 w-4" /> New Site
-          </button>
-        </div>
-      </nav>
+      <Navbar />
+      <div className="mx-auto flex max-w-6xl items-center justify-end px-6 py-4">
+        <button onClick={() => navigate('/new')} className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90">
+          <Plus className="h-4 w-4" /> New Site
+        </button>
+      </div>
 
       <div className="mx-auto max-w-6xl px-6 py-12">
         <h1 className="mb-8 text-3xl font-bold text-landing-bright">My Sites</h1>
