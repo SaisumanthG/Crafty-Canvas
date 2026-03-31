@@ -1,20 +1,22 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Lock, Github, Check, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Github, Check, AlertCircle, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, changePassword } = useAuth();
-  const [tab, setTab] = useState<'password' | 'github'>('password');
+  const [tab, setTab] = useState<'password' | 'github' | 'vercel'>('password');
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [passError, setPassError] = useState('');
   const [ghToken, setGhToken] = useState(localStorage.getItem('webcraft_gh_token') || '');
   const [ghConnected, setGhConnected] = useState(!!localStorage.getItem('webcraft_gh_token'));
+  const [vercelToken, setVercelToken] = useState(localStorage.getItem('webcraft_vercel_token') || '');
+  const [vercelConnected, setVercelConnected] = useState(!!localStorage.getItem('webcraft_vercel_token'));
 
   if (!user) { navigate('/login'); return null; }
 
@@ -44,9 +46,22 @@ export default function Settings() {
     }
   };
 
+  const handleVercelSave = () => {
+    if (vercelToken.trim()) {
+      localStorage.setItem('webcraft_vercel_token', vercelToken.trim());
+      setVercelConnected(true);
+      toast.success('Vercel connected!');
+    } else {
+      localStorage.removeItem('webcraft_vercel_token');
+      setVercelConnected(false);
+      toast.success('Vercel disconnected');
+    }
+  };
+
   const tabs = [
     { id: 'password' as const, label: 'Password', icon: Lock },
     { id: 'github' as const, label: 'GitHub', icon: Github },
+    { id: 'vercel' as const, label: 'Vercel', icon: Rocket },
   ];
 
   return (
@@ -115,6 +130,27 @@ export default function Settings() {
               </div>
               <button onClick={handleGithubSave} className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
                 {ghConnected ? 'Update Token' : 'Connect GitHub'}
+              </button>
+            </div>
+          )}
+
+          {tab === 'vercel' && (
+            <div className="space-y-4">
+              <h2 className="mb-4 text-lg font-bold text-landing-bright">Vercel Deployment</h2>
+              {vercelConnected && (
+                <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2.5">
+                  <Check className="h-4 w-4 text-green-400" />
+                  <p className="text-xs text-green-300">Vercel connected</p>
+                </div>
+              )}
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-landing-text">Vercel API Token</label>
+                <input type="password" value={vercelToken} onChange={e => setVercelToken(e.target.value)} placeholder="vercel_xxxxxxxxxxxx"
+                  className="w-full rounded-lg border border-landing-border bg-landing-bg px-4 py-2.5 text-sm text-landing-bright focus:border-primary focus:outline-none" />
+                <p className="mt-1 text-xs text-landing-text/60">Generate at vercel.com → Settings → Tokens</p>
+              </div>
+              <button onClick={handleVercelSave} className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
+                {vercelConnected ? 'Update Token' : 'Connect Vercel'}
               </button>
             </div>
           )}
