@@ -1,11 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { exportToHTML } from '@/lib/htmlExporter';
-import { getSiteById, deserializeComponents } from '@/lib/siteStorage';
+import { getSiteById, deserializeComponents, deserializePages } from '@/lib/siteStorage';
 
 export default function ViewSite() {
   const [params] = useSearchParams();
-  const navigate = useNavigate();
   const id = params.get('id');
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [html, setHtml] = useState('');
@@ -18,7 +17,8 @@ export default function ViewSite() {
       setHtml(site.published_html);
     } else {
       const components = deserializeComponents(site.components_json);
-      setHtml(exportToHTML(components, site.title));
+      const pages = deserializePages(site.pages_json || '[]');
+      setHtml(exportToHTML(components, site.title, pages));
     }
   }, [id]);
 

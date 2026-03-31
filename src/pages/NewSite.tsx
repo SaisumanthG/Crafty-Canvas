@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowLeft, Search, FileText, Rocket, Users, Building2, UtensilsCrossed, Layers, Check, Star } from 'lucide-react';
 import { templates, getTemplate, getTemplatesByCategory, type Template } from '@/lib/templates';
 import { getThemesByCategory, applyThemeToComponents, Theme } from '@/lib/themes';
-import { createSite, serializeComponents } from '@/lib/siteStorage';
+import { createSite, serializeComponents, serializePages } from '@/lib/siteStorage';
 import { ThemePicker } from '@/components/editor/ThemePicker';
 import { Navbar } from '@/components/layout/Navbar';
 
@@ -83,12 +83,14 @@ export default function NewSite() {
 
   const handleCreate = () => {
     if (!selectedTemplate) return;
-    const { components, category } = getTemplate(selectedTemplate.id);
+    const { components, category, pages } = getTemplate(selectedTemplate.id);
     const themed = selectedTheme ? applyThemeToComponents(components, selectedTheme) : components;
+    const themedPages = selectedTheme ? pages.map(p => ({ ...p, components: applyThemeToComponents(p.components, selectedTheme) })) : pages;
     const site = createSite({
       title: title || selectedTemplate.name + ' Site',
       category,
       components_json: serializeComponents(themed),
+      pages_json: serializePages(themedPages),
       global_styles_json: selectedTheme ? JSON.stringify(selectedTheme) : '{}',
     });
     navigate(`/editor?id=${site.id}`);
