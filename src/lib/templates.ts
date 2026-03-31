@@ -1,4 +1,5 @@
 import { createComponent } from './componentRegistry';
+import type { SitePage } from './siteStorage';
 
 export interface Template {
   id: string;
@@ -8,6 +9,56 @@ export interface Template {
   icon: string;
   thumbnail?: string;
   getComponents: () => any[];
+  getPages?: () => SitePage[];
+}
+
+// Helper to generate default sub-pages for any template
+function generateDefaultPages(brand: string, colors: { bg: string; text: string; accent: string; surface?: string }): SitePage[] {
+  return [
+    {
+      name: 'Features',
+      components: [
+        createComponent('navbar', { brand, links: ['Home', 'Features', 'Pricing', 'Contact'], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('hero', { heading: `${brand} Features`, subheading: 'Everything you need to succeed, all in one platform.', buttonText: 'Get Started', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent }),
+        createComponent('features', { heading: 'Core Features', items: [{ title: 'Lightning Fast', desc: 'Optimized for speed and performance' }, { title: 'Secure by Default', desc: 'Enterprise-grade security built in' }, { title: 'Easy Integration', desc: 'Connect with your favorite tools' }, { title: 'Analytics', desc: 'Real-time insights and reporting' }, { title: 'Collaboration', desc: 'Team features for better workflows' }, { title: '24/7 Support', desc: 'We\'re always here to help' }], bgColor: colors.surface || colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('image', { src: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=600&fit=crop', alt: 'Features dashboard', width: '100%', borderRadius: '12px' }),
+        createComponent('testimonial', { quote: '"This product transformed how our team works. The features are exactly what we needed."', author: 'Alex Johnson', role: 'Product Manager', bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('cta', { heading: 'Ready to Try?', subheading: 'Start your free trial today.', buttonText: 'Start Free', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent }),
+        createComponent('footer', { brand, copyright: `© 2026 ${brand}. All rights reserved.`, bgColor: colors.bg, textColor: '#888888', accentColor: colors.accent }),
+      ],
+    },
+    {
+      name: 'Pricing',
+      components: [
+        createComponent('navbar', { brand, links: ['Home', 'Features', 'Pricing', 'Contact'], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('hero', { heading: 'Simple, Transparent Pricing', subheading: 'No hidden fees. No surprises. Choose the plan that fits your needs.', buttonText: '', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent }),
+        createComponent('pricing', { heading: 'Choose Your Plan', plans: [{ name: 'Starter', price: '$9/mo', features: ['Core features', '1 user', 'Email support', '1GB storage'] }, { name: 'Professional', price: '$29/mo', features: ['All features', '5 users', 'Priority support', '10GB storage', 'API access'], highlighted: true }, { name: 'Enterprise', price: '$99/mo', features: ['Unlimited features', 'Unlimited users', '24/7 support', '100GB storage', 'Custom integrations', 'SLA'] }], bgColor: colors.surface || colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('features', { heading: 'All Plans Include', items: [{ title: 'Free Updates', desc: 'Always get the latest features' }, { title: 'SSL Security', desc: 'Your data is always encrypted' }, { title: 'Uptime SLA', desc: '99.9% guaranteed uptime' }], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('cta', { heading: 'Need a Custom Plan?', subheading: 'Contact us for enterprise pricing and custom solutions.', buttonText: 'Contact Sales', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent }),
+        createComponent('footer', { brand, copyright: `© 2026 ${brand}. All rights reserved.`, bgColor: colors.bg, textColor: '#888888', accentColor: colors.accent }),
+      ],
+    },
+    {
+      name: 'Blog',
+      components: [
+        createComponent('navbar', { brand, links: ['Home', 'Features', 'Pricing', 'Blog'], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('hero', { heading: `${brand} Blog`, subheading: 'Insights, tutorials, and updates from our team.', buttonText: '', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent, paddingY: '60px' }),
+        createComponent('features', { heading: 'Latest Posts', items: [{ title: 'Getting Started Guide', desc: 'Learn how to set up your account and start using our platform in minutes.' }, { title: '10 Tips for Productivity', desc: 'Boost your workflow with these expert tips from our power users.' }, { title: 'Product Update: v2.0', desc: 'Exciting new features including AI assistant, dark mode, and more.' }, { title: 'Customer Success Story', desc: 'How Company X increased their revenue by 300% using our platform.' }, { title: 'Best Practices', desc: 'Industry best practices for getting the most out of your tools.' }, { title: 'Community Spotlight', desc: 'Highlighting amazing projects built by our community members.' }], bgColor: colors.surface || colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('newsletter', { heading: 'Subscribe to Our Newsletter', placeholder: 'Enter your email', buttonText: 'Subscribe', buttonColor: colors.accent, bgColor: colors.bg, textColor: colors.text }),
+        createComponent('footer', { brand, copyright: `© 2026 ${brand}. All rights reserved.`, bgColor: colors.bg, textColor: '#888888', accentColor: colors.accent }),
+      ],
+    },
+    {
+      name: 'Contact',
+      components: [
+        createComponent('navbar', { brand, links: ['Home', 'Features', 'Pricing', 'Contact'], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('hero', { heading: 'Get in Touch', subheading: 'We\'d love to hear from you. Send us a message and we\'ll respond as soon as possible.', buttonText: '', bgColor: colors.bg, textColor: '#FFFFFF', accentColor: colors.accent, paddingY: '60px' }),
+        createComponent('form', { fields: ['Full Name', 'Email Address', 'Subject', 'Message'], buttonText: 'Send Message', buttonColor: colors.accent, bgColor: colors.surface || colors.bg, textColor: colors.text }),
+        createComponent('stats', { items: [{ value: '📧', label: 'hello@' + brand.toLowerCase().replace(/\s+/g, '') + '.com' }, { value: '📞', label: '+1 (555) 123-4567' }, { value: '📍', label: 'San Francisco, CA' }], bgColor: colors.bg, textColor: colors.text, accentColor: colors.accent }),
+        createComponent('footer', { brand, copyright: `© 2026 ${brand}. All rights reserved.`, bgColor: colors.bg, textColor: '#888888', accentColor: colors.accent }),
+      ],
+    },
+  ];
 }
 
 // ─── SAAS TEMPLATES (25) ─────────────────────────────────
