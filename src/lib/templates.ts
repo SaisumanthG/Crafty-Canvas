@@ -768,12 +768,24 @@ export function getTemplatesByCategory(category: string): Template[] {
 
 export function getTemplate(id: string) {
   const tpl = templates.find(t => t.id === id);
-  if (!tpl) return { components: [], category: 'saas' as const };
-  return { components: tpl.getComponents(), category: tpl.category };
+  if (!tpl) return { components: [], category: 'saas' as const, pages: [] as SitePage[] };
+  const comps = tpl.getComponents();
+  // Generate pages: use template's getPages or auto-generate from navbar links
+  let pages: SitePage[] = [];
+  if (tpl.getPages) {
+    pages = tpl.getPages();
+  } else if (tpl.id !== 'blank') {
+    const navbar = comps.find((c: any) => c.type === 'navbar');
+    const brand = navbar?.props?.brand || tpl.name;
+    const bg = navbar?.props?.bgColor || '#0A0A0A';
+    const text = navbar?.props?.textColor || '#FFFFFF';
+    const accent = navbar?.props?.accentColor || '#7C3AED';
+    pages = generateDefaultPages(brand, { bg, text, accent });
+  }
+  return { components: comps, category: tpl.category, pages };
 }
 
 export const categoryMap: Record<string, string> = {
   blank: 'saas',
 };
-// Dynamically populate categoryMap
 templates.forEach(t => { categoryMap[t.id] = t.category; });
