@@ -20,10 +20,13 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         );
       case 'hero':
         return (
-          <div className="px-6 py-20 text-center" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="px-6 text-center" style={{ background: p.bgImage ? `url(${p.bgImage}) center/cover no-repeat, ${p.bgColor}` : p.bgColor, color: p.textColor, textAlign: p.textAlign || 'center', paddingTop: p.paddingY || '80px', paddingBottom: p.paddingY || '80px' }}>
             <h1 className="mb-4 text-4xl font-extrabold">{p.heading}</h1>
             <p className="mx-auto mb-6 max-w-lg text-base opacity-70">{p.subheading}</p>
-            {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{p.buttonText}</button>}
+            <div className="flex items-center justify-center gap-3">
+              {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{p.buttonText}</button>}
+              {p.secondaryButtonText && <button className="rounded-lg px-6 py-3 font-semibold border border-current opacity-80">{p.secondaryButtonText}</button>}
+            </div>
           </div>
         );
       case 'features':
