@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Github, Rocket } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Github, Rocket, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { getSiteById, updateSite, publishSite, deserializeComponents, serializeComponents } from '@/lib/siteStorage';
+import { getSiteById, updateSite, publishSite, deserializeComponents, serializeComponents, deserializePages, serializePages, type SitePage } from '@/lib/siteStorage';
 import { exportToHTML } from '@/lib/htmlExporter';
 import { createComponent } from '@/lib/componentRegistry';
 import { applyThemeToComponents, Theme } from '@/lib/themes';
@@ -23,6 +23,8 @@ export default function Editor() {
   const id = params.get('id');
   const [site, setSite] = useState<any>(null);
   const [components, setComponents] = useState<any[]>([]);
+  const [pages, setPages] = useState<SitePage[]>([]);
+  const [activePage, setActivePage] = useState<string>('home');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [rightTab, setRightTab] = useState<'props' | 'themes'>('props');
@@ -33,6 +35,8 @@ export default function Editor() {
   const [showPublish, setShowPublish] = useState(false);
   const [showGitHub, setShowGitHub] = useState(false);
   const [showVercel, setShowVercel] = useState(false);
+  const [showAddPage, setShowAddPage] = useState(false);
+  const [newPageName, setNewPageName] = useState('');
 
   const [history, setHistory] = useState<any[][]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
@@ -47,7 +51,66 @@ export default function Editor() {
     setComponents(comps);
     setHistory([comps]);
     setHistoryIdx(0);
+    const sitePages = deserializePages(s.pages_json || '[]');
+    setPages(sitePages);
+    setActivePage('home');
   }, [id]);
+
+  // When switching pages, save current page's components and load new page
+  const switchPage = (pageName: string) => {
+    if (pageName === activePage) return;
+    // Save current page
+    if (activePage === 'home') {
+      // components is already the home page
+    } else {
+      setPages(prev => prev.map(p => p.name === activePage ? { ...p, components } : p));
+    }
+    // Load new page
+    if (pageName === 'home') {
+      if (!id) return;
+      const s = getSiteById(id);
+      if (s) {
+        const comps = deserializeComponents(s.components_json);
+        setComponents(comps);
+        setHistory([comps]);
+        setHistoryIdx(0);
+      }
+    } else {
+      const page = pages.find(p => p.name === pageName);
+      const comps = page?.components || [];
+      setComponents(comps);
+      setHistory([comps]);
+      setHistoryIdx(0);
+    }
+    setActivePage(pageName);
+    setSelectedId(null);
+  };
+
+  const addPage = () => {
+    const name = newPageName.trim();
+    if (!name || name.toLowerCase() === 'home' || pages.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+      toast.error('Invalid or duplicate page name');
+      return;
+    }
+    // Create default content for the new page
+    const defaultComps = [
+      createComponent('navbar', components.find(c => c.type === 'navbar')?.props || undefined),
+      createComponent('hero', { heading: name, subheading: `Welcome to the ${name} page`, buttonText: 'Learn More' }),
+      createComponent('features', { heading: `${name} Content`, items: [{ title: 'Section 1', desc: 'Add your content here' }, { title: 'Section 2', desc: 'Customize this section' }, { title: 'Section 3', desc: 'Make it your own' }] }),
+      createComponent('footer', components.find(c => c.type === 'footer')?.props || undefined),
+    ];
+    setPages(prev => [...prev, { name, components: defaultComps }]);
+    setShowAddPage(false);
+    setNewPageName('');
+    toast.success(`Page "${name}" added`);
+  };
+
+  const deletePage = (pageName: string) => {
+    if (pageName === 'home') return;
+    if (activePage === pageName) switchPage('home');
+    setPages(prev => prev.filter(p => p.name !== pageName));
+    toast.success(`Page "${pageName}" deleted`);
+  };
 
   const pushHistory = useCallback((newComps: any[]) => {
     setHistory(prev => {
@@ -68,15 +131,32 @@ export default function Editor() {
 
   const selected = components.find(c => c.id === selectedId);
 
+  const getCurrentPages = (): SitePage[] => {
+    let currentPages = [...pages];
+    if (activePage !== 'home') {
+      currentPages = currentPages.map(p => p.name === activePage ? { ...p, components } : p);
+    }
+    return currentPages;
+  };
+
   const handleSave = () => {
     if (!id) return;
-    updateSite(id, { title, components_json: serializeComponents(components) });
+    const currentPages = getCurrentPages();
+    if (activePage === 'home') {
+      updateSite(id, { title, components_json: serializeComponents(components), pages_json: serializePages(currentPages) });
+    } else {
+      // Save current page components into pages, and save home from stored site
+      const pagesWithCurrent = currentPages.map(p => p.name === activePage ? { ...p, components } : p);
+      updateSite(id, { title, pages_json: serializePages(pagesWithCurrent) });
+    }
     toast.success('Saved!');
   };
 
   const handlePublish = () => {
     if (!id || !site) return;
-    const h = exportToHTML(components, title);
+    const currentPages = getCurrentPages();
+    const homeComps = activePage === 'home' ? components : deserializeComponents(site.components_json);
+    const h = exportToHTML(homeComps, title, currentPages);
     publishSite(id, h);
     setShowPublish(true);
     toast.success('Published!');
@@ -134,8 +214,10 @@ export default function Editor() {
   const handleThemeApply = (theme: Theme) => {
     const themed = applyThemeToComponents(components, theme);
     updateComponents(themed);
+    // Also apply theme to all pages
+    setPages(prev => prev.map(p => ({ ...p, components: applyThemeToComponents(p.components, theme) })));
     if (id) updateSite(id, { global_styles_json: JSON.stringify(theme) });
-    toast.success(`Theme "${theme.name}" applied!`);
+    toast.success(`Theme "${theme.name}" applied to all pages!`);
   };
 
   useEffect(() => {
@@ -157,7 +239,10 @@ export default function Editor() {
 
   if (!site) return <div className="flex h-screen items-center justify-center bg-editor-bg text-editor-text">Loading...</div>;
 
-  const html = exportToHTML(components, title);
+  const homeComps = activePage === 'home' ? components : deserializeComponents(site.components_json);
+  const html = exportToHTML(homeComps, title, getCurrentPages());
+
+  const allPageNames = ['home', ...pages.map(p => p.name)];
 
   return (
     <div className="flex h-screen flex-col bg-editor-bg">
@@ -208,6 +293,31 @@ export default function Editor() {
             <Rocket className="h-3.5 w-3.5" /> Publish
           </button>
         </div>
+      </div>
+
+      {/* Page tabs */}
+      <div className="flex h-9 shrink-0 items-center gap-1 border-b border-editor-border bg-editor-sidebar px-3 overflow-x-auto">
+        {allPageNames.map(name => (
+          <div key={name} className={`group flex items-center gap-1 rounded-t-md px-3 py-1.5 text-xs font-medium cursor-pointer transition-colors ${activePage === name ? 'bg-editor-bg text-editor-text-bright border-b-2 border-editor-accent' : 'text-editor-text hover:text-editor-text-bright hover:bg-editor-hover'}`}>
+            <span onClick={() => switchPage(name)} className="capitalize">{name}</span>
+            {name !== 'home' && (
+              <button onClick={(e) => { e.stopPropagation(); deletePage(name); }} className="ml-1 hidden rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400 group-hover:block">
+                <X className="h-3 w-3" />
+              </button>
+            )}
+          </div>
+        ))}
+        <button onClick={() => setShowAddPage(true)} className="rounded-md p-1 text-editor-text hover:bg-editor-hover hover:text-editor-text-bright" title="Add page">
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+
+        {showAddPage && (
+          <div className="flex items-center gap-2 ml-2">
+            <input value={newPageName} onChange={e => setNewPageName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addPage()} placeholder="Page name..." className="w-28 rounded border border-editor-border bg-editor-bg px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" autoFocus />
+            <button onClick={addPage} className="rounded bg-editor-accent px-2 py-1 text-xs text-primary-foreground">Add</button>
+            <button onClick={() => { setShowAddPage(false); setNewPageName(''); }} className="rounded p-1 text-editor-text hover:bg-editor-hover"><X className="h-3 w-3" /></button>
+          </div>
+        )}
       </div>
 
       {/* Main area */}
