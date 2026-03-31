@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, ArrowLeft, Search, FileText, Rocket, Users, Building2, UtensilsCrossed, Layers, Check, Star } from 'lucide-react';
 import { templates, getTemplate, getTemplatesByCategory, type Template } from '@/lib/templates';
 import { getThemesByCategory, applyThemeToComponents, Theme } from '@/lib/themes';
-import { createSite, serializeComponents } from '@/lib/siteStorage';
+import { createSite, serializeComponents, serializePages } from '@/lib/siteStorage';
 import { ThemePicker } from '@/components/editor/ThemePicker';
 import { Navbar } from '@/components/layout/Navbar';
 
