@@ -83,12 +83,14 @@ export default function NewSite() {
 
   const handleCreate = () => {
     if (!selectedTemplate) return;
-    const { components, category } = getTemplate(selectedTemplate.id);
+    const { components, category, pages } = getTemplate(selectedTemplate.id);
     const themed = selectedTheme ? applyThemeToComponents(components, selectedTheme) : components;
+    const themedPages = selectedTheme ? pages.map(p => ({ ...p, components: applyThemeToComponents(p.components, selectedTheme) })) : pages;
     const site = createSite({
       title: title || selectedTemplate.name + ' Site',
       category,
       components_json: serializeComponents(themed),
+      pages_json: serializePages(themedPages),
       global_styles_json: selectedTheme ? JSON.stringify(selectedTheme) : '{}',
     });
     navigate(`/editor?id=${site.id}`);
