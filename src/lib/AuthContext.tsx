@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { v4 } from './utils';
 
 export interface User {
   id: string;
@@ -42,36 +43,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const sessionId = localStorage.getItem(SESSION_KEY);
-    if (sessionId) {
-      const users = getUsers();
-      if (users[sessionId]) setUser(users[sessionId].user);
+    try {
+      const sessionId = localStorage.getItem(SESSION_KEY);
+      if (sessionId) {
+        const users = getUsers();
+        if (users[sessionId]) setUser(users[sessionId].user);
+      }
+    } catch (e) {
+      console.error('Session restore error:', e);
     }
     setIsLoading(false);
   }, []);
 
-  const login = (email: string, password: string) => {
-    const users = getUsers();
-    const entry = Object.values(users).find(u => u.user.email === email);
-    if (!entry) return { success: false, error: 'No account found with this email' };
-    if (entry.password !== password) return { success: false, error: 'Incorrect password. Please try again.' };
-    setUser(entry.user);
-    localStorage.setItem(SESSION_KEY, entry.user.id);
-    return { success: true };
+  const login = (email: string, password: string): { success: boolean; error?: string } => {
+    try {
+      const users = getUsers();
+      const entry = Object.values(users).find(u => u.user.email === email);
+      if (!entry) return { success: false, error: 'No account found with this email' };
+      if (entry.password !== password) return { success: false, error: 'Incorrect password. Please try again.' };
+      setUser(entry.user);
+      localStorage.setItem(SESSION_KEY, entry.user.id);
+      return { success: true };
+    } catch (e) {
+      console.error('Login error:', e);
+      return { success: false, error: 'Login failed. Please try again.' };
+    }
   };
 
-  const register = (name: string, email: string, password: string) => {
-    const users = getUsers();
-    if (Object.values(users).some(u => u.user.email === email)) {
-      return { success: false, error: 'An account with this email already exists' };
+  const register = (name: string, email: string, password: string): { success: boolean; error?: string } => {
+    try {
+      const users = getUsers();
+      if (Object.values(users).some(u => u.user.email === email)) {
+        return { success: false, error: 'An account with this email already exists' };
+      }
+      const id = v4();
+      const newUser: User = { id, name, email, createdAt: new Date().toISOString() };
+      users[id] = { user: newUser, password };
+      saveUsers(users);
+      setUser(newUser);
+      localStorage.setItem(SESSION_KEY, id);
+      return { success: true };
+    } catch (e) {
+      console.error('Registration error:', e);
+      return { success: false, error: 'Registration failed. Please try again.' };
     }
-    const id = crypto.randomUUID();
-    const newUser: User = { id, name, email, createdAt: new Date().toISOString() };
-    users[id] = { user: newUser, password };
-    saveUsers(users);
-    setUser(newUser);
-    localStorage.setItem(SESSION_KEY, id);
-    return { success: true };
   };
 
   const logout = () => {
@@ -87,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (users[user.id]) { users[user.id].user = updated; saveUsers(users); }
   };
 
-  const changePassword = (current: string, newPass: string) => {
+  const changePassword = (current: string, newPass: string): { success: boolean; error?: string } => {
     if (!user) return { success: false, error: 'Not logged in' };
     const users = getUsers();
     if (!users[user.id]) return { success: false, error: 'User not found' };
