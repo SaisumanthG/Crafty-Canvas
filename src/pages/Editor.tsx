@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Github, Rocket, Plus, X } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function Editor() {
   const navigate = useNavigate();
   const id = params.get('id');
   const [site, setSite] = useState<any>(null);
+  const [homeComponents, setHomeComponents] = useState<any[]>([]);
   const [components, setComponents] = useState<any[]>([]);
   const [pages, setPages] = useState<SitePage[]>([]);
   const [activePage, setActivePage] = useState<string>('home');
@@ -48,6 +49,7 @@ export default function Editor() {
     setSite(s);
     setTitle(s.title);
     const comps = deserializeComponents(s.components_json);
+    setHomeComponents(comps);
     setComponents(comps);
     setHistory([comps]);
     setHistoryIdx(0);
@@ -56,25 +58,19 @@ export default function Editor() {
     setActivePage('home');
   }, [id]);
 
-  // When switching pages, save current page's components and load new page
   const switchPage = (pageName: string) => {
     if (pageName === activePage) return;
-    // Save current page
+    // Save current page's components
     if (activePage === 'home') {
-      // components is already the home page
+      setHomeComponents(components);
     } else {
       setPages(prev => prev.map(p => p.name === activePage ? { ...p, components } : p));
     }
     // Load new page
     if (pageName === 'home') {
-      if (!id) return;
-      const s = getSiteById(id);
-      if (s) {
-        const comps = deserializeComponents(s.components_json);
-        setComponents(comps);
-        setHistory([comps]);
-        setHistoryIdx(0);
-      }
+      setComponents(homeComponents);
+      setHistory([homeComponents]);
+      setHistoryIdx(0);
     } else {
       const page = pages.find(p => p.name === pageName);
       const comps = page?.components || [];
@@ -92,7 +88,6 @@ export default function Editor() {
       toast.error('Invalid or duplicate page name');
       return;
     }
-    // Create default content for the new page
     const defaultComps = [
       createComponent('navbar', components.find(c => c.type === 'navbar')?.props || undefined),
       createComponent('hero', { heading: name, subheading: `Welcome to the ${name} page`, buttonText: 'Learn More' }),
@@ -107,7 +102,12 @@ export default function Editor() {
 
   const deletePage = (pageName: string) => {
     if (pageName === 'home') return;
-    if (activePage === pageName) switchPage('home');
+    if (activePage === pageName) {
+      setComponents(homeComponents);
+      setHistory([homeComponents]);
+      setHistoryIdx(0);
+      setActivePage('home');
+    }
     setPages(prev => prev.filter(p => p.name !== pageName));
     toast.success(`Page "${pageName}" deleted`);
   };
@@ -123,11 +123,14 @@ export default function Editor() {
 
   const updateComponents = useCallback((newComps: any[]) => {
     setComponents(newComps);
+    if (activePage === 'home') {
+      setHomeComponents(newComps);
+    }
     pushHistory(newComps);
-  }, [pushHistory]);
+  }, [pushHistory, activePage]);
 
-  const undo = () => { if (historyIdx > 0) { setHistoryIdx(historyIdx - 1); setComponents(history[historyIdx - 1]); } };
-  const redo = () => { if (historyIdx < history.length - 1) { setHistoryIdx(historyIdx + 1); setComponents(history[historyIdx + 1]); } };
+  const undo = () => { if (historyIdx > 0) { const prev = history[historyIdx - 1]; setHistoryIdx(historyIdx - 1); setComponents(prev); if (activePage === 'home') setHomeComponents(prev); } };
+  const redo = () => { if (historyIdx < history.length - 1) { const next = history[historyIdx + 1]; setHistoryIdx(historyIdx + 1); setComponents(next); if (activePage === 'home') setHomeComponents(next); } };
 
   const selected = components.find(c => c.id === selectedId);
 
@@ -142,20 +145,26 @@ export default function Editor() {
   const handleSave = () => {
     if (!id) return;
     const currentPages = getCurrentPages();
-    if (activePage === 'home') {
-      updateSite(id, { title, components_json: serializeComponents(components), pages_json: serializePages(currentPages) });
-    } else {
-      // Save current page components into pages, and save home from stored site
-      const pagesWithCurrent = currentPages.map(p => p.name === activePage ? { ...p, components } : p);
-      updateSite(id, { title, pages_json: serializePages(pagesWithCurrent) });
-    }
+    const homeComps = activePage === 'home' ? components : homeComponents;
+    updateSite(id, {
+      title,
+      components_json: serializeComponents(homeComps),
+      pages_json: serializePages(activePage !== 'home'
+        ? currentPages.map(p => p.name === activePage ? { ...p, components } : p)
+        : currentPages
+      ),
+    });
+    // Refresh site reference
+    const updated = getSiteById(id);
+    if (updated) setSite(updated);
     toast.success('Saved!');
   };
 
   const handlePublish = () => {
     if (!id || !site) return;
+    handleSave(); // save first
+    const homeComps = activePage === 'home' ? components : homeComponents;
     const currentPages = getCurrentPages();
-    const homeComps = activePage === 'home' ? components : deserializeComponents(site.components_json);
     const h = exportToHTML(homeComps, title, currentPages);
     publishSite(id, h);
     setShowPublish(true);
@@ -183,6 +192,28 @@ export default function Editor() {
 
   const handleCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    // Handle image drops onto canvas
+    const files = e.dataTransfer.files;
+    if (files.length > 0 && files[0].type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          const newComp = createComponent('image', { src: reader.result, alt: files[0].name });
+          updateComponents([...components, newComp]);
+          setSelectedId(newComp.id);
+        }
+      };
+      reader.readAsDataURL(files[0]);
+      return;
+    }
+    // Handle URL text drops
+    const url = e.dataTransfer.getData('text/plain');
+    if (url && (url.startsWith('http') || url.startsWith('data:'))) {
+      const newComp = createComponent('image', { src: url, alt: 'Dropped image' });
+      updateComponents([...components, newComp]);
+      setSelectedId(newComp.id);
+      return;
+    }
     if (dragType) {
       const newComp = createComponent(dragType);
       updateComponents([...components, newComp]);
@@ -214,7 +245,10 @@ export default function Editor() {
   const handleThemeApply = (theme: Theme) => {
     const themed = applyThemeToComponents(components, theme);
     updateComponents(themed);
-    // Also apply theme to all pages
+    // Also apply theme to home and all pages
+    if (activePage !== 'home') {
+      setHomeComponents(prev => applyThemeToComponents(prev, theme));
+    }
     setPages(prev => prev.map(p => ({ ...p, components: applyThemeToComponents(p.components, theme) })));
     if (id) updateSite(id, { global_styles_json: JSON.stringify(theme) });
     toast.success(`Theme "${theme.name}" applied to all pages!`);
@@ -239,8 +273,8 @@ export default function Editor() {
 
   if (!site) return <div className="flex h-screen items-center justify-center bg-editor-bg text-editor-text">Loading...</div>;
 
-  const homeComps = activePage === 'home' ? components : deserializeComponents(site.components_json);
-  const html = exportToHTML(homeComps, title, getCurrentPages());
+  const currentHomeComps = activePage === 'home' ? components : homeComponents;
+  const html = exportToHTML(currentHomeComps, title, getCurrentPages());
 
   const allPageNames = ['home', ...pages.map(p => p.name)];
 
@@ -289,7 +323,7 @@ export default function Editor() {
           <button onClick={handleSave} className="flex items-center gap-1 rounded-lg border border-editor-border px-2.5 py-1 text-xs text-editor-text hover:bg-editor-hover hover:text-editor-text-bright">
             <Save className="h-3.5 w-3.5" /> Save
           </button>
-          <button onClick={() => setShowVercel(true)} className="flex items-center gap-1 rounded-lg bg-editor-accent px-3 py-1 text-xs font-medium text-primary-foreground hover:opacity-90">
+          <button onClick={() => { handleSave(); setShowVercel(true); }} className="flex items-center gap-1 rounded-lg bg-editor-accent px-3 py-1 text-xs font-medium text-primary-foreground hover:opacity-90">
             <Rocket className="h-3.5 w-3.5" /> Publish
           </button>
         </div>
