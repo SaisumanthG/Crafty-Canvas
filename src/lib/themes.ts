@@ -1,7 +1,7 @@
 export interface Theme {
   id: string;
   name: string;
-  category: 'saas' | 'portfolio' | 'business' | 'restaurant';
+  category: string;
   primary: string;
   bg: string;
   surface: string;
