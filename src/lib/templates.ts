@@ -1,11 +1,13 @@
 import { createComponent } from './componentRegistry';
 import type { SitePage } from './siteStorage';
 
+export type TemplateCategory = 'saas' | 'portfolio' | 'business' | 'restaurant' | 'wellness' | 'fitness' | 'travel' | 'health' | 'education' | 'realestate' | 'event' | 'fashion' | 'hotel' | 'nonprofit' | 'agency' | 'techlanding' | 'foodbev';
+
 export interface Template {
   id: string;
   name: string;
   description: string;
-  category: 'saas' | 'portfolio' | 'business' | 'restaurant';
+  category: TemplateCategory;
   icon: string;
   thumbnail?: string;
   getComponents: () => any[];
