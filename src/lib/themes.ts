@@ -1,7 +1,7 @@
 export interface Theme {
   id: string;
   name: string;
-  category: 'saas' | 'portfolio' | 'business' | 'restaurant';
+  category: string;
   primary: string;
   bg: string;
   surface: string;
@@ -125,7 +125,9 @@ const restaurantThemes: Theme[] = [
 export const allThemes: Theme[] = [...saasThemes, ...portfolioThemes, ...businessThemes, ...restaurantThemes];
 
 export function getThemesByCategory(category: string): Theme[] {
-  return allThemes.filter(t => t.category === category);
+  const matching = allThemes.filter(t => t.category === category);
+  // Fallback to saas themes for categories without dedicated themes
+  return matching.length > 0 ? matching : allThemes.filter(t => t.category === 'saas');
 }
 
 export function getThemeById(id: string): Theme | undefined {
