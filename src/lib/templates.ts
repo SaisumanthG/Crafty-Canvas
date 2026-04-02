@@ -747,6 +747,172 @@ const restaurantTemplates: Template[] = [
   }))),
 ];
 
+// ─── FACTORY for new categories ──────────────────────────
+function makeCategory(
+  catId: TemplateCategory,
+  prefix: string,
+  names: string[],
+  icon: string,
+  colorSets: { primary: string; bg: string; surface: string; text: string }[],
+  sectionWord: string,
+  ctaHeading: string,
+  ctaSub: string,
+): Template[] {
+  return names.map((name, i) => ({
+    id: `${prefix}-${name.toLowerCase().replace(/[\s&']+/g, '-')}`,
+    name,
+    description: `${name} — ${catId} template`,
+    category: catId,
+    icon,
+    getComponents: () => {
+      const c = colorSets[i % colorSets.length];
+      const isLight = c.text.match(/^#[0-7]/);
+      const heroText = isLight ? c.text : '#FFFFFF';
+      return [
+        createComponent('navbar', { brand: name, links: ['Home', 'Services', 'About', 'Contact'], bgColor: c.bg, textColor: c.text, accentColor: c.primary }),
+        createComponent('hero', { heading: name, subheading: `Premium ${sectionWord} services crafted with care and expertise.`, buttonText: 'Learn More', bgColor: c.bg, textColor: heroText, accentColor: c.primary }),
+        createComponent('features', { heading: `Why ${name}`, items: [{ title: 'Expert Team', desc: 'Experienced professionals at your service' }, { title: 'Quality First', desc: 'We never compromise on standards' }, { title: 'Custom Solutions', desc: 'Tailored to your specific needs' }, { title: 'Results Driven', desc: 'Measurable outcomes guaranteed' }], bgColor: c.surface, textColor: c.text, accentColor: c.primary }),
+        createComponent('stats', { items: [{ value: '500+', label: 'Happy Clients' }, { value: '10+', label: 'Years Experience' }, { value: '98%', label: 'Satisfaction' }], bgColor: c.bg, textColor: c.text, accentColor: c.primary }),
+        createComponent('testimonial', { quote: `"${name} exceeded all our expectations. Truly outstanding service."`, author: 'Satisfied Customer', role: '★★★★★', bgColor: c.surface, textColor: c.text, accentColor: c.primary }),
+        createComponent('cta', { heading: ctaHeading, subheading: ctaSub, buttonText: 'Get Started', bgColor: c.bg, textColor: heroText, accentColor: c.primary }),
+        createComponent('footer', { brand: name, copyright: `© 2026 ${name}.`, bgColor: c.bg, textColor: '#666666', accentColor: c.primary }),
+      ];
+    },
+  }));
+}
+
+const CAT_COLORS: { primary: string; bg: string; surface: string; text: string }[] = [
+  { primary: '#8B5CF6', bg: '#13111C', surface: '#1C1929', text: '#EDE9FE' },
+  { primary: '#06B6D4', bg: '#0B1519', surface: '#0F1D23', text: '#CFFAFE' },
+  { primary: '#F59E0B', bg: '#1A1706', surface: '#25210C', text: '#FEF9C3' },
+  { primary: '#EC4899', bg: '#1A0B14', surface: '#25101E', text: '#FCE7F3' },
+  { primary: '#10B981', bg: '#071209', surface: '#0D1E12', text: '#D1FAE5' },
+  { primary: '#3B82F6', bg: '#0B1120', surface: '#111827', text: '#DBEAFE' },
+  { primary: '#EF4444', bg: '#1A0A0A', surface: '#251010', text: '#FEE2E2' },
+  { primary: '#14B8A6', bg: '#0B1514', surface: '#0F1F1D', text: '#CCFBF1' },
+  { primary: '#F97316', bg: '#1A110B', surface: '#251A10', text: '#FFEDD5' },
+  { primary: '#6366F1', bg: '#0F0F1F', surface: '#16162B', text: '#E0E7FF' },
+  { primary: '#D946EF', bg: '#1A0B1F', surface: '#25112E', text: '#FAE8FF' },
+  { primary: '#84CC16', bg: '#0B1207', surface: '#141E0D', text: '#ECFCCB' },
+  { primary: '#0EA5E9', bg: '#0B1520', surface: '#0F1D2B', text: '#BAE6FD' },
+  { primary: '#F43F5E', bg: '#1A0B0F', surface: '#25101A', text: '#FFE4E6' },
+  { primary: '#A855F7', bg: '#160B22', surface: '#1F1133', text: '#F3E8FF' },
+  { primary: '#DC2626', bg: '#0A0A0A', surface: '#1A1010', text: '#FEE2E2' },
+  { primary: '#059669', bg: '#071209', surface: '#0D1E12', text: '#A7F3D0' },
+  { primary: '#B8860B', bg: '#FFFFFF', surface: '#F9F7F1', text: '#1A1A1A' },
+  { primary: '#1E40AF', bg: '#FFFFFF', surface: '#EFF6FF', text: '#1E3A5F' },
+  { primary: '#0891B2', bg: '#ECFEFF', surface: '#CFFAFE', text: '#164E63' },
+  { primary: '#16A34A', bg: '#F0FDF4', surface: '#DCFCE7', text: '#14532D' },
+  { primary: '#475569', bg: '#F8FAFC', surface: '#F1F5F9', text: '#1E293B' },
+  { primary: '#92400E', bg: '#FFFBEB', surface: '#FEF3C7', text: '#451A03' },
+  { primary: '#7C3AED', bg: '#0F0B1A', surface: '#1A1425', text: '#E2DFF0' },
+  { primary: '#2563EB', bg: '#0A0E1A', surface: '#101828', text: '#BFDBFE' },
+];
+
+const wellnessTemplates = makeCategory('wellness', 'well', [
+  'Serene Spa', 'Mindful Living', 'Healing Touch', 'Zen Retreat', 'Pure Bliss Spa',
+  'Harmony Wellness', 'Soul Balance', 'Calm Waters', 'Inner Peace Center', 'Lotus Wellness',
+  'Radiant Glow', 'Tranquil Minds', 'Wellness Haven', 'Body & Soul', 'Spirit Rise',
+  'Deep Relax', 'Aura Healing', 'Nature Therapy', 'Crystal Clear Spa', 'Vital Flow',
+  'Oasis Wellness', 'Revive Studio', 'Breathe Easy', 'Sacred Space', 'Golden Hour Spa',
+], 'Sparkles', CAT_COLORS, 'wellness', 'Book Your Session', 'Start your journey to inner peace today.');
+
+const fitnessTemplates = makeCategory('fitness', 'fit', [
+  'Iron Gym', 'Peak Performance', 'FitLife Studio', 'CrossTrain Pro', 'Muscle Factory',
+  'Cardio Zone', 'Flex Fitness', 'Power House', 'Elite Athletics', 'Transform Gym',
+  'Circuit Lab', 'Strong Nation', 'Endurance Hub', 'Beast Mode', 'Vitality Fitness',
+  'Core Strength', 'Athletic Edge', 'Sweat Studio', 'Warrior Fitness', 'Burn Club',
+  'Motion Gym', 'Rise & Grind', 'Titan Fitness', 'Pulse Gym', 'Victory Fitness',
+], 'Dumbbell', CAT_COLORS, 'fitness', 'Start Training Today', 'First session free. No commitment required.');
+
+const travelTemplates = makeCategory('travel', 'trav', [
+  'Wanderlust Tours', 'Globe Trotter', 'Horizon Adventures', 'Paradise Travels', 'Epic Journeys',
+  'Nomad Explorer', 'Skyline Travel', 'Coastal Escapes', 'Mountain Trek', 'Safari Dreams',
+  'Island Hopper', 'Cultural Routes', 'Backpack World', 'Luxury Getaways', 'Road Trip Co',
+  'Oceanic Voyages', 'Alpine Adventures', 'Desert Safari', 'Tropical Paradise', 'Northern Lights',
+  'Ancient Trails', 'City Explorer', 'Eco Travel', 'Sunset Cruises', 'Adventure Awaits',
+], 'Plane', CAT_COLORS, 'travel', 'Plan Your Trip', 'Custom itineraries tailored to your dream vacation.');
+
+const healthTemplates = makeCategory('health', 'hlth', [
+  'CareFirst Clinic', 'Vitality Health', 'MedConnect', 'Healthy Living', 'Prime Care',
+  'Wellness MD', 'Family Health', 'MindBody Clinic', 'Integrated Health', 'Precision Medicine',
+  'Holistic Health', 'Healing Hands', 'Complete Care', 'LifeLine Clinic', 'Thrive Health',
+  'Heart & Soul Medical', 'Bright Health', 'ProHealth Center', 'Wellness Clinic Plus', 'TotalCare',
+  'MedLife Solutions', 'Gentle Care', 'Advanced Health', 'NatureMed', 'BodyWise Clinic',
+], 'Heart', CAT_COLORS, 'healthcare', 'Schedule an Appointment', 'Your health is our priority. Book today.');
+
+const educationTemplates = makeCategory('education', 'edu', [
+  'LearnSphere', 'EduPro Academy', 'BrightMinds', 'SkillForge', 'Knowledge Hub',
+  'MasterClass Pro', 'StudyPath', 'CourseWave', 'TutorConnect', 'AcademyX',
+  'Digital Learning', 'SmartEd', 'UpSkill Now', 'BookWorm Academy', 'TeachFlow',
+  'Mentor Pro', 'ClassRoom Plus', 'Learning Tree', 'EduVault', 'Scholar Hub',
+  'IntelliLearn', 'CampusBridge', 'StudyLab', 'CourseCraft', 'WisdomPath',
+], 'GraduationCap', CAT_COLORS, 'education', 'Enroll Today', 'Start learning from world-class instructors.');
+
+const realestateTemplates = makeCategory('realestate', 'relt', [
+  'Dream Homes', 'Urban Nest', 'Skyview Realty', 'Premier Estates', 'Keystone Properties',
+  'Coastal Living', 'Metro Homes', 'Prestige Realty', 'HomeBase', 'Golden Gate Properties',
+  'Summit Real Estate', 'Citadel Homes', 'Azure Estates', 'Brick & Mortar', 'Haven Properties',
+  'Pinnacle Realty', 'Landmark Homes', 'Horizon Estates', 'Foundation Realty', 'Elite Properties',
+  'Cornerstone Homes', 'Infinity Realty', 'Sterling Estates', 'Oak Tree Properties', 'Crestview Homes',
+], 'Home', CAT_COLORS, 'real estate', 'Find Your Dream Home', 'Schedule a private showing today.');
+
+const eventTemplates = makeCategory('event', 'evt', [
+  'Grand Events', 'Celebrate Co', 'Eventful', 'Party Planner Pro', 'Gala Events',
+  'Momentous', 'Festiva', 'Conference Hub', 'Summit Events', 'VIP Gatherings',
+  'Epic Events', 'Milestone Planners', 'Spotlight Events', 'Bliss Events', 'Dream Day',
+  'EventCraft', 'Jubilee', 'Grand Stage', 'Fete & Feast', 'Occasions Plus',
+  'Premiere Events', 'Celestial Celebrations', 'CheerFest', 'Harmony Events', 'Extravaganza',
+], 'Calendar', CAT_COLORS, 'event planning', 'Plan Your Event', 'From concept to execution, we handle everything.');
+
+const fashionTemplates = makeCategory('fashion', 'fash', [
+  'Luxe Label', 'Vogue Studio', 'Chic Boutique', 'Runway Ready', 'Trend Setter',
+  'Haute Couture', 'Style & Grace', 'Fashion Forward', 'Glamour House', 'Silk & Thread',
+  'Dressed Up', 'Urban Threads', 'Elegant Edge', 'Bold & Beautiful', 'Couture Collective',
+  'Stitch Perfect', 'Fashion Vault', 'Wardrobe Edit', 'Velvet Rose', 'Modern Muse',
+  'The Style Bar', 'Prêt-à-Porter', 'Thread & Needle', 'Opulent', 'Golden Stitch',
+], 'ShoppingBag', CAT_COLORS, 'fashion', 'Shop the Collection', 'New arrivals dropping every week.');
+
+const hotelTemplates = makeCategory('hotel', 'htl', [
+  'Grand Palace', 'Seaside Resort', 'Mountain Lodge', 'Urban Boutique', 'Luxury Suites',
+  'Sunset Inn', 'Heritage Hotel', 'Sky Lounge Hotel', 'Oasis Resort', 'The Grand',
+  'Riverside Hotel', 'Tropical Paradise', 'Alpine Retreat', 'Crystal Bay Resort', 'Pearl Hotel',
+  'Golden Sands', 'The Manor', 'Starlight Hotel', 'Emerald Resort', 'Royal Palace',
+  'Harbor View', 'Cedar Lodge', 'Sapphire Suites', 'Ivory Tower', 'Crescent Hotel',
+], 'Building', CAT_COLORS, 'hospitality', 'Book Your Stay', 'Exclusive rates available for direct bookings.');
+
+const nonprofitTemplates = makeCategory('nonprofit', 'npo', [
+  'Hope Foundation', 'Green Earth', 'Care Alliance', 'Bright Future', 'Helping Hands',
+  'Unity Project', 'Change Makers', 'Heart & Hope', 'Give Forward', 'Compassion Corps',
+  'Global Aid', 'Kindness First', 'Community Lift', 'Seeds of Hope', 'Better Tomorrow',
+  'Impact Network', 'Beacon of Light', 'Open Arms', 'PathFinders', 'Humanity First',
+  'Uplift Foundation', 'Roots & Wings', 'Mission Possible', 'Safe Haven', 'Bridge Builders',
+], 'Heart', CAT_COLORS, 'charitable', 'Make a Donation', 'Every contribution makes a difference.');
+
+const agencyTemplates = makeCategory('agency', 'agcy', [
+  'Creative Pulse', 'Pixel Storm', 'BrandForge', 'Studio Nine', 'Spark Agency',
+  'Canvas Creative', 'Neon Agency', 'Artistry Co', 'Design Lab', 'Visual Edge',
+  'Craft Studio', 'Mojo Agency', 'Prism Creative', 'Atomic Design', 'Flow Agency',
+  'Blueprint Studio', 'Elevate Creative', 'Fusion Agency', 'Kinetic Design', 'Nova Studio',
+  'Quantum Creative', 'Ripple Agency', 'Vector Studio', 'Zenith Creative', 'Apex Studio',
+], 'Palette', CAT_COLORS, 'creative', 'Start a Project', 'Let\'s bring your vision to life.');
+
+const techlandingTemplates = makeCategory('techlanding', 'tl', [
+  'LaunchPad', 'AppLift', 'TechVibe', 'Rocket Launch', 'Product Hunt Pro',
+  'BetaReady', 'FeatureScope', 'NexGen Product', 'DevLaunch', 'StartupKit',
+  'ProductForge', 'MicroSaaS', 'AppCraft', 'TechDrop', 'InnoLaunch',
+  'QuickShip', 'MVP Builder', 'LaunchDay', 'ProductPeak', 'TechForward',
+  'RapidLaunch', 'ScaleUp', 'GrowthEngine', 'Ignition', 'Catalyst',
+], 'Rocket', CAT_COLORS, 'technology', 'Get Early Access', 'Be the first to try our product.');
+
+const foodbevTemplates = makeCategory('foodbev', 'fb', [
+  'Craft Brewery', 'Artisan Bakery', 'Organic Market', 'Juice Bar', 'Tea House',
+  'Chocolate Factory', 'Wine Estate', 'Farmer\'s Market', 'Gourmet Kitchen', 'Smoothie Bar',
+  'Coffee Roasters', 'Pastry Palace', 'Cheese Shop', 'Spice Market', 'Ice Cream Parlor',
+  'Kombucha Co', 'Honey Farm', 'Olive Oil Co', 'Sourdough Studio', 'Matcha Lab',
+  'Cider House', 'Distillery', 'Candy Shop', 'Popcorn Factory', 'Pretzel Place',
+], 'UtensilsCrossed', CAT_COLORS, 'food & beverage', 'Order Now', 'Fresh, handcrafted products delivered to your door.');
+
 // ─── BLANK TEMPLATE ──────────────────────────────────────
 const blankTemplate: Template = {
   id: 'blank', name: 'Blank Canvas', description: 'Start from scratch with drag & drop',
@@ -761,6 +927,19 @@ export const templates: Template[] = [
   ...portfolioTemplates,
   ...businessTemplates,
   ...restaurantTemplates,
+  ...wellnessTemplates,
+  ...fitnessTemplates,
+  ...travelTemplates,
+  ...healthTemplates,
+  ...educationTemplates,
+  ...realestateTemplates,
+  ...eventTemplates,
+  ...fashionTemplates,
+  ...hotelTemplates,
+  ...nonprofitTemplates,
+  ...agencyTemplates,
+  ...techlandingTemplates,
+  ...foodbevTemplates,
 ];
 
 export function getTemplatesByCategory(category: string): Template[] {
@@ -770,9 +949,8 @@ export function getTemplatesByCategory(category: string): Template[] {
 
 export function getTemplate(id: string) {
   const tpl = templates.find(t => t.id === id);
-  if (!tpl) return { components: [], category: 'saas' as const, pages: [] as SitePage[] };
+  if (!tpl) return { components: [], category: 'saas' as TemplateCategory, pages: [] as SitePage[] };
   const comps = tpl.getComponents();
-  // Generate pages: use template's getPages or auto-generate from navbar links
   let pages: SitePage[] = [];
   if (tpl.getPages) {
     pages = tpl.getPages();
