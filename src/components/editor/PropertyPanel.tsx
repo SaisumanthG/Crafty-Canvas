@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Copy, Trash2, ChevronDown, Plus, X, ChevronUp, GripVertical } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Copy, Trash2, ChevronDown, Plus, X } from 'lucide-react';
 
 interface PropertyPanelProps {
   component: any;
@@ -77,26 +77,57 @@ const STOCK_IMAGES: Record<string, string[]> = {
 
 const TEXT_ALIGN_OPTIONS = ['left', 'center', 'right'];
 
+// Debounced text input that stores value locally and commits on blur/delay
+function DebouncedInput({ value, onChange, type = 'text', className, placeholder, rows }: {
+  value: string; onChange: (v: string) => void; type?: string; className?: string; placeholder?: string; rows?: number;
+}) {
+  const [local, setLocal] = useState(value);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => { setLocal(value); }, [value]);
+
+  const commit = useCallback((v: string) => {
+    clearTimeout(timerRef.current);
+    onChange(v);
+  }, [onChange]);
+
+  const handleChange = (v: string) => {
+    setLocal(v);
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => commit(v), 400);
+  };
+
+  const handleBlur = () => { clearTimeout(timerRef.current); commit(local); };
+
+  if (type === 'textarea' || rows) {
+    return <textarea value={local} onChange={e => handleChange(e.target.value)} onBlur={handleBlur} rows={rows || 3} className={className} placeholder={placeholder} />;
+  }
+  return <input type={type} value={local} onChange={e => handleChange(e.target.value)} onBlur={handleBlur} className={className} placeholder={placeholder} />;
+}
+
 export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: PropertyPanelProps) {
   const [subTab, setSubTab] = useState<'properties' | 'images'>('properties');
   const [imageCategory, setImageCategory] = useState('Abstract');
   const p = component.props;
 
-  const update = (key: string, value: any) => {
-    onChange({ ...component, props: { ...p, [key]: value } });
-  };
+  const update = useCallback((key: string, value: any) => {
+    onChange({ ...component, props: { ...component.props, [key]: value } });
+  }, [component, onChange]);
 
   const Field = ({ label, prop, type = 'text' }: { label: string; prop: string; type?: string }) => {
     if (p[prop] === undefined) return null;
+    const inputClass = "w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none";
     return (
       <div className="mb-3">
         <label className="mb-1 block text-[11px] font-medium text-editor-text">{label}</label>
         {type === 'textarea' ? (
-          <textarea value={p[prop]} onChange={e => update(prop, e.target.value)} rows={3} className="w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-2 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none resize-none" />
+          <DebouncedInput value={p[prop]} onChange={v => update(prop, v)} type="textarea" rows={3}
+            className={inputClass + " resize-none"} />
         ) : type === 'color' ? (
           <div className="flex gap-2 items-center">
             <input type="color" value={p[prop]} onChange={e => update(prop, e.target.value)} className="h-7 w-7 cursor-pointer rounded border border-editor-border bg-transparent shrink-0" />
-            <input type="text" value={p[prop]} onChange={e => update(prop, e.target.value)} className="flex-1 rounded-lg border border-editor-border bg-editor-bg px-2 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+            <DebouncedInput value={p[prop]} onChange={v => update(prop, v)}
+              className={"flex-1 rounded-lg border border-editor-border bg-editor-bg px-2 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none"} />
           </div>
         ) : type === 'select-align' ? (
           <div className="relative">
@@ -111,7 +142,7 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
             <span className="text-[10px] text-editor-text-bright w-10 text-right">{p[prop]}</span>
           </div>
         ) : (
-          <input type={type} value={p[prop]} onChange={e => update(prop, e.target.value)} className="w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+          <DebouncedInput value={p[prop]} onChange={v => update(prop, v)} type={type} className={inputClass} />
         )}
       </div>
     );
@@ -130,7 +161,7 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
         <div className="space-y-1">
           {arr.map((item, i) => (
             <div key={i} className="flex gap-1 items-center">
-              <input value={item} onChange={e => { const n = [...arr]; n[i] = e.target.value; update(prop, n); }}
+              <DebouncedInput value={item} onChange={v => { const n = [...arr]; n[i] = v; update(prop, n); }}
                 className="flex-1 rounded border border-editor-border bg-editor-bg px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
               <button onClick={() => update(prop, arr.filter((_, j) => j !== i))} className="rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400"><X className="h-3 w-3" /></button>
             </div>
@@ -161,16 +192,16 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
               </div>
               {isStats ? (
                 <>
-                  <input value={item.value || ''} onChange={e => { const n = [...arr]; n[i] = { ...n[i], value: e.target.value }; update(prop, n); }}
+                  <DebouncedInput value={item.value || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], value: v }; update(prop, n); }}
                     placeholder="Value" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                  <input value={item.label || ''} onChange={e => { const n = [...arr]; n[i] = { ...n[i], label: e.target.value }; update(prop, n); }}
+                  <DebouncedInput value={item.label || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], label: v }; update(prop, n); }}
                     placeholder="Label" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
                 </>
               ) : (
                 <>
-                  <input value={item.title || ''} onChange={e => { const n = [...arr]; n[i] = { ...n[i], title: e.target.value }; update(prop, n); }}
+                  <DebouncedInput value={item.title || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], title: v }; update(prop, n); }}
                     placeholder="Title" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                  <input value={item.desc || ''} onChange={e => { const n = [...arr]; n[i] = { ...n[i], desc: e.target.value }; update(prop, n); }}
+                  <DebouncedInput value={item.desc || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], desc: v }; update(prop, n); }}
                     placeholder="Description" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
                 </>
               )}
@@ -205,9 +236,9 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
                   <button onClick={() => update('plans', plans.filter((_, j) => j !== i))} className="rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400"><X className="h-3 w-3" /></button>
                 </div>
               </div>
-              <input value={plan.name || ''} onChange={e => { const n = [...plans]; n[i] = { ...n[i], name: e.target.value }; update('plans', n); }}
+              <DebouncedInput value={plan.name || ''} onChange={v => { const n = [...plans]; n[i] = { ...n[i], name: v }; update('plans', n); }}
                 placeholder="Plan name" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-              <input value={plan.price || ''} onChange={e => { const n = [...plans]; n[i] = { ...n[i], price: e.target.value }; update('plans', n); }}
+              <DebouncedInput value={plan.price || ''} onChange={v => { const n = [...plans]; n[i] = { ...n[i], price: v }; update('plans', n); }}
                 placeholder="Price" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
               <div className="mt-1">
                 <div className="flex items-center justify-between mb-0.5">
@@ -217,7 +248,7 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
                 </div>
                 {(plan.features || []).map((f: string, fi: number) => (
                   <div key={fi} className="flex gap-1 items-center mb-0.5">
-                    <input value={f} onChange={e => { const n = [...plans]; const feats = [...(n[i].features || [])]; feats[fi] = e.target.value; n[i] = { ...n[i], features: feats }; update('plans', n); }}
+                    <DebouncedInput value={f} onChange={v => { const n = [...plans]; const feats = [...(n[i].features || [])]; feats[fi] = v; n[i] = { ...n[i], features: feats }; update('plans', n); }}
                       className="flex-1 rounded border border-editor-border bg-editor-sidebar px-2 py-0.5 text-[11px] text-editor-text-bright focus:border-editor-accent focus:outline-none" />
                     <button onClick={() => { const n = [...plans]; n[i] = { ...n[i], features: (n[i].features || []).filter((_: any, j: number) => j !== fi) }; update('plans', n); }}
                       className="rounded p-0.5 text-editor-text hover:text-red-400"><X className="h-2.5 w-2.5" /></button>
@@ -373,13 +404,15 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
           {/* Custom URL input */}
           <div className="mt-4">
             <label className="mb-1.5 block text-xs font-medium text-editor-text">Or paste image URL</label>
-            <input type="text" placeholder="https://..."
+            <DebouncedInput
               value={p.bgImage || p.src || ''}
-              onChange={e => {
-                if (p.src !== undefined) update('src', e.target.value);
-                else update('bgImage', e.target.value);
+              onChange={v => {
+                if (p.src !== undefined) update('src', v);
+                else update('bgImage', v);
               }}
-              className="w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-2 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+              className="w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-2 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none"
+              placeholder="https://..."
+            />
           </div>
 
           {/* Drag & drop zone */}
