@@ -91,6 +91,19 @@ export default function NewSite() {
     setStep(2);
   };
 
+  const handleDoubleClickCreate = (t: Template) => {
+    if (t.id === 'blank') { handleSelectTemplate(t); return; }
+    const { components, category, pages } = getTemplate(t.id);
+    const site = createSite({
+      title: t.name + ' Site',
+      category,
+      components_json: serializeComponents(components),
+      pages_json: serializePages(pages),
+      global_styles_json: '{}',
+    });
+    navigate(`/editor?id=${site.id}`);
+  };
+
   const handleCreate = () => {
     if (!selectedTemplate) return;
     const { components, category, pages } = getTemplate(selectedTemplate.id);
