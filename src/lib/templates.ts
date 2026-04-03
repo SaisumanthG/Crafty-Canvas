@@ -14,8 +14,8 @@ export interface Template {
   getPages?: () => SitePage[];
 }
 
-// Helper to generate default sub-pages for any template
-function generateDefaultPages(brand: string, colors: { bg: string; text: string; accent: string; surface?: string }): SitePage[] {
+// Generate unique pages per template using its brand, section word, and colors
+function generateTemplatePages(brand: string, sectionWord: string, colors: { bg: string; text: string; accent: string; surface?: string }): SitePage[] {
   return [
     {
       name: 'Features',
