@@ -17,6 +17,14 @@ import { PublishModal } from '@/components/editor/PublishModal';
 import { GitHubModal } from '@/components/editor/GitHubModal';
 import { VercelDeployModal } from '@/components/editor/VercelDeployModal';
 
+// Full editor state snapshot for undo/redo (includes pages)
+interface EditorSnapshot {
+  homeComponents: any[];
+  pages: SitePage[];
+  activePage: string;
+  components: any[]; // current visible components
+}
+
 export default function Editor() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -39,8 +47,17 @@ export default function Editor() {
   const [showAddPage, setShowAddPage] = useState(false);
   const [newPageName, setNewPageName] = useState('');
 
-  const [history, setHistory] = useState<any[][]>([]);
+  // Undo/redo with full snapshots
+  const [history, setHistory] = useState<EditorSnapshot[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
+  const skipHistoryRef = useRef(false);
+
+  const makeSnapshot = useCallback((): EditorSnapshot => ({
+    homeComponents: activePage === 'home' ? components : homeComponents,
+    pages: activePage !== 'home' ? pages.map(p => p.name === activePage ? { ...p, components } : p) : pages,
+    activePage,
+    components,
+  }), [homeComponents, components, pages, activePage]);
 
   useEffect(() => {
     if (!id) return;
@@ -51,35 +68,49 @@ export default function Editor() {
     const comps = deserializeComponents(s.components_json);
     setHomeComponents(comps);
     setComponents(comps);
-    setHistory([comps]);
-    setHistoryIdx(0);
     const sitePages = deserializePages(s.pages_json || '[]');
     setPages(sitePages);
     setActivePage('home');
+    const snap: EditorSnapshot = { homeComponents: comps, pages: sitePages, activePage: 'home', components: comps };
+    setHistory([snap]);
+    setHistoryIdx(0);
   }, [id]);
+
+  const pushHistory = useCallback((snap: EditorSnapshot) => {
+    setHistory(prev => {
+      const trimmed = prev.slice(0, historyIdx + 1);
+      const next = [...trimmed, snap].slice(-50);
+      setHistoryIdx(next.length - 1);
+      return next;
+    });
+  }, [historyIdx]);
 
   const switchPage = (pageName: string) => {
     if (pageName === activePage) return;
     // Save current page's components
+    let newHome = homeComponents;
+    let newPages = pages;
     if (activePage === 'home') {
+      newHome = components;
       setHomeComponents(components);
     } else {
-      setPages(prev => prev.map(p => p.name === activePage ? { ...p, components } : p));
+      newPages = pages.map(p => p.name === activePage ? { ...p, components } : p);
+      setPages(newPages);
     }
     // Load new page
+    let newComps: any[];
     if (pageName === 'home') {
-      setComponents(homeComponents);
-      setHistory([homeComponents]);
-      setHistoryIdx(0);
+      newComps = newHome;
     } else {
-      const page = pages.find(p => p.name === pageName);
-      const comps = page?.components || [];
-      setComponents(comps);
-      setHistory([comps]);
-      setHistoryIdx(0);
+      const page = newPages.find(p => p.name === pageName);
+      newComps = page?.components || [];
     }
+    setComponents(newComps);
     setActivePage(pageName);
     setSelectedId(null);
+    // Push snapshot
+    const snap: EditorSnapshot = { homeComponents: newHome, pages: newPages, activePage: pageName, components: newComps };
+    pushHistory(snap);
   };
 
   const addPage = () => {
@@ -88,49 +119,83 @@ export default function Editor() {
       toast.error('Invalid or duplicate page name');
       return;
     }
+    const navbarComp = (activePage === 'home' ? components : homeComponents).find(c => c.type === 'navbar');
+    const footerComp = (activePage === 'home' ? components : homeComponents).find(c => c.type === 'footer');
     const defaultComps = [
-      createComponent('navbar', components.find(c => c.type === 'navbar')?.props || undefined),
+      createComponent('navbar', navbarComp?.props || undefined),
       createComponent('hero', { heading: name, subheading: `Welcome to the ${name} page`, buttonText: 'Learn More' }),
       createComponent('features', { heading: `${name} Content`, items: [{ title: 'Section 1', desc: 'Add your content here' }, { title: 'Section 2', desc: 'Customize this section' }, { title: 'Section 3', desc: 'Make it your own' }] }),
-      createComponent('footer', components.find(c => c.type === 'footer')?.props || undefined),
+      createComponent('footer', footerComp?.props || undefined),
     ];
-    setPages(prev => [...prev, { name, components: defaultComps }]);
+    const newPages = [...pages, { name, components: defaultComps }];
+    setPages(newPages);
     setShowAddPage(false);
     setNewPageName('');
     toast.success(`Page "${name}" added`);
+    pushHistory({ homeComponents, pages: newPages, activePage, components });
   };
 
   const deletePage = (pageName: string) => {
     if (pageName === 'home') return;
+    // Push current state before delete for undo
+    pushHistory(makeSnapshot());
+    let newComps = components;
     if (activePage === pageName) {
+      newComps = homeComponents;
       setComponents(homeComponents);
-      setHistory([homeComponents]);
-      setHistoryIdx(0);
       setActivePage('home');
     }
-    setPages(prev => prev.filter(p => p.name !== pageName));
-    toast.success(`Page "${pageName}" deleted`);
-  };
-
-  const pushHistory = useCallback((newComps: any[]) => {
-    setHistory(prev => {
-      const trimmed = prev.slice(0, historyIdx + 1);
-      const next = [...trimmed, newComps].slice(-50);
-      setHistoryIdx(next.length - 1);
-      return next;
+    const newPages = pages.filter(p => p.name !== pageName);
+    setPages(newPages);
+    toast.success(`Page "${pageName}" deleted (Ctrl+Z to restore)`);
+    // Push the post-delete state
+    pushHistory({
+      homeComponents: activePage === pageName ? homeComponents : (activePage === 'home' ? newComps : homeComponents),
+      pages: newPages,
+      activePage: activePage === pageName ? 'home' : activePage,
+      components: activePage === pageName ? homeComponents : newComps,
     });
-  }, [historyIdx]);
+  };
 
   const updateComponents = useCallback((newComps: any[]) => {
     setComponents(newComps);
     if (activePage === 'home') {
       setHomeComponents(newComps);
     }
-    pushHistory(newComps);
-  }, [pushHistory, activePage]);
+    if (!skipHistoryRef.current) {
+      const snap: EditorSnapshot = {
+        homeComponents: activePage === 'home' ? newComps : homeComponents,
+        pages: activePage !== 'home' ? pages.map(p => p.name === activePage ? { ...p, components: newComps } : p) : pages,
+        activePage,
+        components: newComps,
+      };
+      pushHistory(snap);
+    }
+  }, [pushHistory, activePage, homeComponents, pages]);
 
-  const undo = () => { if (historyIdx > 0) { const prev = history[historyIdx - 1]; setHistoryIdx(historyIdx - 1); setComponents(prev); if (activePage === 'home') setHomeComponents(prev); } };
-  const redo = () => { if (historyIdx < history.length - 1) { const next = history[historyIdx + 1]; setHistoryIdx(historyIdx + 1); setComponents(next); if (activePage === 'home') setHomeComponents(next); } };
+  const undo = () => {
+    if (historyIdx <= 0) return;
+    const prev = history[historyIdx - 1];
+    setHistoryIdx(historyIdx - 1);
+    skipHistoryRef.current = true;
+    setHomeComponents(prev.homeComponents);
+    setPages(prev.pages);
+    setActivePage(prev.activePage);
+    setComponents(prev.components);
+    skipHistoryRef.current = false;
+  };
+
+  const redo = () => {
+    if (historyIdx >= history.length - 1) return;
+    const next = history[historyIdx + 1];
+    setHistoryIdx(historyIdx + 1);
+    skipHistoryRef.current = true;
+    setHomeComponents(next.homeComponents);
+    setPages(next.pages);
+    setActivePage(next.activePage);
+    setComponents(next.components);
+    skipHistoryRef.current = false;
+  };
 
   const selected = components.find(c => c.id === selectedId);
 
@@ -149,12 +214,8 @@ export default function Editor() {
     updateSite(id, {
       title,
       components_json: serializeComponents(homeComps),
-      pages_json: serializePages(activePage !== 'home'
-        ? currentPages.map(p => p.name === activePage ? { ...p, components } : p)
-        : currentPages
-      ),
+      pages_json: serializePages(currentPages),
     });
-    // Refresh site reference
     const updated = getSiteById(id);
     if (updated) setSite(updated);
     toast.success('Saved!');
@@ -162,7 +223,7 @@ export default function Editor() {
 
   const handlePublish = () => {
     if (!id || !site) return;
-    handleSave(); // save first
+    handleSave();
     const homeComps = activePage === 'home' ? components : homeComponents;
     const currentPages = getCurrentPages();
     const h = exportToHTML(homeComps, title, currentPages);
@@ -192,7 +253,6 @@ export default function Editor() {
 
   const handleCanvasDrop = (e: React.DragEvent) => {
     e.preventDefault();
-    // Handle image drops onto canvas
     const files = e.dataTransfer.files;
     if (files.length > 0 && files[0].type.startsWith('image/')) {
       const reader = new FileReader();
@@ -206,7 +266,6 @@ export default function Editor() {
       reader.readAsDataURL(files[0]);
       return;
     }
-    // Handle URL text drops
     const url = e.dataTransfer.getData('text/plain');
     if (url && (url.startsWith('http') || url.startsWith('data:'))) {
       const newComp = createComponent('image', { src: url, alt: 'Dropped image' });
@@ -222,9 +281,9 @@ export default function Editor() {
     }
   };
 
-  const handleComponentChange = (updated: any) => {
+  const handleComponentChange = useCallback((updated: any) => {
     updateComponents(components.map(c => c.id === updated.id ? updated : c));
-  };
+  }, [components, updateComponents]);
 
   const handleDuplicate = () => {
     if (!selected) return;
@@ -245,7 +304,6 @@ export default function Editor() {
   const handleThemeApply = (theme: Theme) => {
     const themed = applyThemeToComponents(components, theme);
     updateComponents(themed);
-    // Also apply theme to home and all pages
     if (activePage !== 'home') {
       setHomeComponents(prev => applyThemeToComponents(prev, theme));
     }
@@ -356,11 +414,14 @@ export default function Editor() {
 
       {/* Main area */}
       <div className="flex flex-1 overflow-hidden">
-        <div className="w-56 shrink-0 border-r border-editor-border bg-editor-sidebar">
-          <div className="border-b border-editor-border px-3 py-2.5">
+        {/* Left palette - full height with scroll */}
+        <div className="w-56 shrink-0 border-r border-editor-border bg-editor-sidebar flex flex-col h-full">
+          <div className="border-b border-editor-border px-3 py-2.5 shrink-0">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-editor-text">Components</h3>
           </div>
-          <ComponentPalette onDragStart={setDragType} />
+          <div className="flex-1 overflow-y-auto">
+            <ComponentPalette onDragStart={setDragType} />
+          </div>
         </div>
 
         <div className="flex-1 overflow-auto bg-editor-bg p-6 canvas-grid" onDragOver={e => e.preventDefault()} onDrop={handleCanvasDrop}>
@@ -395,8 +456,8 @@ export default function Editor() {
           </div>
         </div>
 
-        <div className="w-72 shrink-0 border-l border-editor-border bg-editor-sidebar">
-          <div className="flex border-b border-editor-border">
+        <div className="w-72 shrink-0 border-l border-editor-border bg-editor-sidebar flex flex-col h-full">
+          <div className="flex border-b border-editor-border shrink-0">
             <button onClick={() => setRightTab('props')} className={`flex-1 px-3 py-2.5 text-xs font-medium transition-colors ${rightTab === 'props' ? 'border-b-2 border-editor-accent text-editor-text-bright' : 'text-editor-text hover:text-editor-text-bright'}`}>
               Properties
             </button>
@@ -405,21 +466,23 @@ export default function Editor() {
             </button>
           </div>
 
-          {rightTab === 'props' && (
-            selected ? (
-              <PropertyPanel component={selected} onChange={handleComponentChange} onDuplicate={handleDuplicate} onDelete={handleDelete} />
-            ) : (
-              <div className="flex h-40 items-center justify-center text-xs text-editor-text">
-                Select a component to edit
-              </div>
-            )
-          )}
+          <div className="flex-1 overflow-y-auto">
+            {rightTab === 'props' && (
+              selected ? (
+                <PropertyPanel key={selected.id} component={selected} onChange={handleComponentChange} onDuplicate={handleDuplicate} onDelete={handleDelete} />
+              ) : (
+                <div className="flex h-40 items-center justify-center text-xs text-editor-text">
+                  Select a component to edit
+                </div>
+              )
+            )}
 
-          {rightTab === 'themes' && (
-            <div className="p-3 editor-scroll overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
-              <ThemePicker category={site.category || 'saas'} selected={null} onSelect={handleThemeApply} columns={2} />
-            </div>
-          )}
+            {rightTab === 'themes' && (
+              <div className="p-3">
+                <ThemePicker category={site.category || 'saas'} selected={null} onSelect={handleThemeApply} columns={2} />
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

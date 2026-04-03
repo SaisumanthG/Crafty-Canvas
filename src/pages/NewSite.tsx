@@ -91,6 +91,19 @@ export default function NewSite() {
     setStep(2);
   };
 
+  const handleDoubleClickCreate = (t: Template) => {
+    if (t.id === 'blank') { handleSelectTemplate(t); return; }
+    const { components, category, pages } = getTemplate(t.id);
+    const site = createSite({
+      title: t.name + ' Site',
+      category,
+      components_json: serializeComponents(components),
+      pages_json: serializePages(pages),
+      global_styles_json: '{}',
+    });
+    navigate(`/editor?id=${site.id}`);
+  };
+
   const handleCreate = () => {
     if (!selectedTemplate) return;
     const { components, category, pages } = getTemplate(selectedTemplate.id);
@@ -183,6 +196,7 @@ export default function NewSite() {
               {filteredTemplates.map((t, i) => (
                 <motion.button key={t.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i * 0.02, 0.4) }}
                   onClick={() => handleSelectTemplate(t)}
+                  onDoubleClick={() => handleDoubleClickCreate(t)}
                   className="group overflow-hidden rounded-xl border border-landing-border bg-landing-surface text-left transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
                   <div className="aspect-[4/3] overflow-hidden">
                     <TemplateMiniPreview template={t} />

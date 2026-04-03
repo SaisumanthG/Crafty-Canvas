@@ -21,7 +21,7 @@ export function ComponentPalette({ onDragStart }: ComponentPaletteProps) {
   const groups = getComponentsByCategory();
 
   return (
-    <div className="editor-scroll overflow-y-auto p-3" style={{ maxHeight: 'calc(100vh - 60px)' }}>
+    <div className="overflow-y-auto p-3 h-full">
       {(Object.keys(groups) as ComponentCategory[]).map(cat => (
         <div key={cat} className="mb-4">
           <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-editor-text">{categoryLabels[cat]}</h4>
