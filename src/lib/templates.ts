@@ -962,7 +962,7 @@ export function getTemplate(id: string) {
     const bg = navbar?.props?.bgColor || '#0A0A0A';
     const text = navbar?.props?.textColor || '#FFFFFF';
     const accent = navbar?.props?.accentColor || '#7C3AED';
-    pages = generateDefaultPages(brand, { bg, text, accent });
+    pages = generateTemplatePages(brand, tpl.category, { bg, text, accent });
   }
   return { components: comps, category: tpl.category, pages };
 }
