@@ -758,17 +758,18 @@ function makeCategory(
   ctaHeading: string,
   ctaSub: string,
 ): Template[] {
-  return names.map((name, i) => ({
-    id: `${prefix}-${name.toLowerCase().replace(/[\s&']+/g, '-')}`,
-    name,
-    description: `${name} — ${catId} template`,
-    category: catId,
-    icon,
-    getComponents: () => {
-      const c = colorSets[i % colorSets.length];
-      const isLight = c.text.match(/^#[0-7]/);
-      const heroText = isLight ? c.text : '#FFFFFF';
-      return [
+  return names.map((name, i) => {
+    const c = colorSets[i % colorSets.length];
+    const isLight = c.text.match(/^#[0-7]/);
+    const heroText = isLight ? c.text : '#FFFFFF';
+    const colors = { bg: c.bg, text: c.text, accent: c.primary, surface: c.surface };
+    return {
+      id: `${prefix}-${name.toLowerCase().replace(/[\s&']+/g, '-')}`,
+      name,
+      description: `${name} — ${catId} template`,
+      category: catId,
+      icon,
+      getComponents: () => [
         createComponent('navbar', { brand: name, links: ['Home', 'Services', 'About', 'Contact'], bgColor: c.bg, textColor: c.text, accentColor: c.primary }),
         createComponent('hero', { heading: name, subheading: `Premium ${sectionWord} services crafted with care and expertise.`, buttonText: 'Learn More', bgColor: c.bg, textColor: heroText, accentColor: c.primary }),
         createComponent('features', { heading: `Why ${name}`, items: [{ title: 'Expert Team', desc: 'Experienced professionals at your service' }, { title: 'Quality First', desc: 'We never compromise on standards' }, { title: 'Custom Solutions', desc: 'Tailored to your specific needs' }, { title: 'Results Driven', desc: 'Measurable outcomes guaranteed' }], bgColor: c.surface, textColor: c.text, accentColor: c.primary }),
@@ -776,9 +777,10 @@ function makeCategory(
         createComponent('testimonial', { quote: `"${name} exceeded all our expectations. Truly outstanding service."`, author: 'Satisfied Customer', role: '★★★★★', bgColor: c.surface, textColor: c.text, accentColor: c.primary }),
         createComponent('cta', { heading: ctaHeading, subheading: ctaSub, buttonText: 'Get Started', bgColor: c.bg, textColor: heroText, accentColor: c.primary }),
         createComponent('footer', { brand: name, copyright: `© 2026 ${name}.`, bgColor: c.bg, textColor: '#666666', accentColor: c.primary }),
-      ];
-    },
-  }));
+      ],
+      getPages: (): SitePage[] => generateTemplatePages(name, sectionWord, colors),
+    };
+  });
 }
 
 const CAT_COLORS: { primary: string; bg: string; surface: string; text: string }[] = [
