@@ -114,9 +114,10 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
     onChange({ ...component, props: { ...component.props, [key]: value } });
   }, [component, onChange]);
 
+  const inputClass = "w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none";
+
   const Field = ({ label, prop, type = 'text' }: { label: string; prop: string; type?: string }) => {
     if (p[prop] === undefined) return null;
-    const inputClass = "w-full rounded-lg border border-editor-border bg-editor-bg px-3 py-1.5 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none";
     return (
       <div className="mb-3">
         <label className="mb-1 block text-[11px] font-medium text-editor-text">{label}</label>
@@ -135,11 +136,6 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
               {TEXT_ALIGN_OPTIONS.map(o => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
             </select>
             <ChevronDown className="absolute right-2.5 top-2 h-3.5 w-3.5 text-editor-text pointer-events-none" />
-          </div>
-        ) : type === 'range' ? (
-          <div className="flex items-center gap-3">
-            <input type="range" min="0" max="200" value={parseInt(p[prop]) || 0} onChange={e => update(prop, e.target.value + 'px')} className="flex-1 accent-editor-accent" />
-            <span className="text-[10px] text-editor-text-bright w-10 text-right">{p[prop]}</span>
           </div>
         ) : (
           <DebouncedInput value={p[prop]} onChange={v => update(prop, v)} type={type} className={inputClass} />
@@ -171,16 +167,15 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
     );
   };
 
-  // Object array editor (for items: [{title, desc}], stats: [{value, label}])
-  const ItemsEditor = ({ label, prop }: { label: string; prop: string }) => {
-    const arr: any[] = p[prop] || [];
+  // Stats items editor (value + label)
+  const StatsEditor = () => {
+    const arr: any[] = p.items || [];
     if (!Array.isArray(arr)) return null;
-    const isStats = arr.length > 0 && arr[0]?.value !== undefined;
     return (
       <div className="mb-3">
         <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-editor-text">
-          <span>{label} ({arr.length})</span>
-          <button onClick={() => update(prop, [...arr, isStats ? { value: '0', label: 'Label' } : { title: 'New Item', desc: 'Description' }])}
+          <span>Stats ({arr.length})</span>
+          <button onClick={() => update('items', [...arr, { value: '0', label: 'Label' }])}
             className="rounded p-0.5 hover:bg-editor-hover"><Plus className="h-3 w-3" /></button>
         </label>
         <div className="space-y-2">
@@ -188,23 +183,41 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
             <div key={i} className="rounded-lg border border-editor-border bg-editor-bg p-2">
               <div className="flex items-center justify-between mb-1">
                 <span className="text-[10px] text-editor-text">#{i + 1}</span>
-                <button onClick={() => update(prop, arr.filter((_, j) => j !== i))} className="rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400"><X className="h-3 w-3" /></button>
+                <button onClick={() => update('items', arr.filter((_, j) => j !== i))} className="rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400"><X className="h-3 w-3" /></button>
               </div>
-              {isStats ? (
-                <>
-                  <DebouncedInput value={item.value || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], value: v }; update(prop, n); }}
-                    placeholder="Value" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                  <DebouncedInput value={item.label || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], label: v }; update(prop, n); }}
-                    placeholder="Label" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                </>
-              ) : (
-                <>
-                  <DebouncedInput value={item.title || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], title: v }; update(prop, n); }}
-                    placeholder="Title" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                  <DebouncedInput value={item.desc || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], desc: v }; update(prop, n); }}
-                    placeholder="Description" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
-                </>
-              )}
+              <DebouncedInput value={item.value || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], value: v }; update('items', n); }}
+                placeholder="Number" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+              <DebouncedInput value={item.label || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], label: v }; update('items', n); }}
+                placeholder="Label" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
+  // Features items editor (title + description)
+  const FeaturesEditor = () => {
+    const arr: any[] = p.items || [];
+    if (!Array.isArray(arr)) return null;
+    return (
+      <div className="mb-3">
+        <label className="mb-1 flex items-center justify-between text-[11px] font-medium text-editor-text">
+          <span>Features ({arr.length})</span>
+          <button onClick={() => update('items', [...arr, { title: 'New Feature', desc: 'Description' }])}
+            className="rounded p-0.5 hover:bg-editor-hover"><Plus className="h-3 w-3" /></button>
+        </label>
+        <div className="space-y-2">
+          {arr.map((item, i) => (
+            <div key={i} className="rounded-lg border border-editor-border bg-editor-bg p-2">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[10px] text-editor-text">#{i + 1}</span>
+                <button onClick={() => update('items', arr.filter((_, j) => j !== i))} className="rounded p-0.5 text-editor-text hover:bg-red-500/20 hover:text-red-400"><X className="h-3 w-3" /></button>
+              </div>
+              <DebouncedInput value={item.title || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], title: v }; update('items', n); }}
+                placeholder="Title" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+              <DebouncedInput value={item.desc || ''} onChange={v => { const n = [...arr]; n[i] = { ...n[i], desc: v }; update('items', n); }}
+                placeholder="Description" type="textarea" className="w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none resize-none" />
             </div>
           ))}
         </div>
@@ -283,6 +296,214 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
     if (url) handleImageSelect(url);
   };
 
+  // --- Component-specific property rendering ---
+  const renderTypeSpecificProperties = () => {
+    const t = component.type;
+
+    if (t === 'hero') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <Field label="Subheadline" prop="subheading" type="textarea" />
+          <Field label="Button Text" prop="buttonText" />
+          <Field label="Button URL" prop="url" />
+          <Field label="Secondary Button" prop="secondaryButtonText" />
+        </>
+      );
+    }
+
+    if (t === 'pricing') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <Field label="Subheadline" prop="subheading" type="textarea" />
+          <PlansEditor />
+        </>
+      );
+    }
+
+    if (t === 'stats') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <StatsEditor />
+        </>
+      );
+    }
+
+    if (t === 'features') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <Field label="Subheadline" prop="subheading" type="textarea" />
+          <FeaturesEditor />
+        </>
+      );
+    }
+
+    if (t === 'testimonial') {
+      return (
+        <>
+          <Field label="Quote" prop="quote" type="textarea" />
+          <Field label="Author" prop="author" />
+          <Field label="Role" prop="role" />
+        </>
+      );
+    }
+
+    if (t === 'cta') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <Field label="Text" prop="text" type="textarea" />
+          <Field label="Button Text" prop="buttonText" />
+          <Field label="Button URL" prop="url" />
+        </>
+      );
+    }
+
+    if (t === 'navbar') {
+      return (
+        <>
+          <Field label="Brand" prop="brand" />
+          {p.links && <StringArrayEditor label="Navigation Links" prop="links" />}
+        </>
+      );
+    }
+
+    if (t === 'footer') {
+      return (
+        <>
+          <Field label="Brand" prop="brand" />
+          <Field label="Copyright" prop="copyright" />
+          {p.links && <StringArrayEditor label="Links" prop="links" />}
+        </>
+      );
+    }
+
+    if (t === 'form' || t === 'newsletter') {
+      return (
+        <>
+          <Field label="Headline" prop="heading" />
+          <Field label="Text" prop="text" type="textarea" />
+          <Field label="Button Text" prop="buttonText" />
+          <Field label="Placeholder" prop="placeholder" />
+          {p.fields && <StringArrayEditor label="Form Fields" prop="fields" />}
+        </>
+      );
+    }
+
+    if (t === 'button') {
+      return (
+        <>
+          <Field label="Button Text" prop="text" />
+          <Field label="Button URL" prop="url" />
+        </>
+      );
+    }
+
+    if (t === 'image') {
+      return (
+        <>
+          <Field label="Image Source" prop="src" />
+          <Field label="Alt Text" prop="alt" />
+        </>
+      );
+    }
+
+    if (t === 'video') {
+      return (
+        <>
+          <Field label="Video Source" prop="src" />
+        </>
+      );
+    }
+
+    if (t === 'gallery') {
+      return (
+        <>
+          {p.images && <StringArrayEditor label="Gallery Images" prop="images" />}
+          <Field label="Columns" prop="columns" />
+        </>
+      );
+    }
+
+    if (t === 'container' || t === 'columns') {
+      return (
+        <>
+          <Field label="Max Width" prop="maxWidth" />
+          <Field label="Gap" prop="gap" />
+          <Field label="Columns" prop="columns" />
+        </>
+      );
+    }
+
+    if (t === 'heading') {
+      return (
+        <>
+          <Field label="Text" prop="text" />
+          <Field label="Level" prop="level" />
+        </>
+      );
+    }
+
+    if (t === 'text' || t === 'richtext') {
+      return (
+        <>
+          <Field label="Text" prop="text" type="textarea" />
+        </>
+      );
+    }
+
+    if (t === 'link') {
+      return (
+        <>
+          <Field label="Text" prop="text" />
+          <Field label="URL" prop="url" />
+        </>
+      );
+    }
+
+    if (t === 'divider') {
+      return (
+        <>
+          <Field label="Thickness" prop="thickness" />
+        </>
+      );
+    }
+
+    if (t === 'spacer') {
+      return (
+        <>
+          <Field label="Height" prop="height" />
+        </>
+      );
+    }
+
+    if (t === 'icon') {
+      return (
+        <>
+          <Field label="Icon Name" prop="name" />
+          <Field label="Size" prop="size" />
+        </>
+      );
+    }
+
+    // Fallback: show all defined string props
+    return (
+      <>
+        {Object.keys(p).filter(k => typeof p[k] === 'string' && !['bgColor','textColor','accentColor','buttonColor','buttonTextColor','linkColor','color','bgImage','padding','margin','borderRadius','paddingY','textAlign','fontSize','fontWeight','width','height','maxWidth','gap','thickness','size'].includes(k)).map(k => (
+          <Field key={k} label={k.charAt(0).toUpperCase() + k.slice(1).replace(/([A-Z])/g, ' $1')} prop={k} />
+        ))}
+        {p.items && Array.isArray(p.items) && (p.items[0]?.value !== undefined ? <StatsEditor /> : <FeaturesEditor />)}
+        {p.plans && <PlansEditor />}
+        {p.links && <StringArrayEditor label="Links" prop="links" />}
+        {p.fields && <StringArrayEditor label="Fields" prop="fields" />}
+        {p.images && <StringArrayEditor label="Images" prop="images" />}
+      </>
+    );
+  };
+
   return (
     <div className="editor-scroll overflow-y-auto" style={{ maxHeight: 'calc(100vh - 140px)' }}>
       {/* Component header */}
@@ -310,36 +531,10 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
 
       {subTab === 'properties' && (
         <div className="p-4">
-          {/* Text properties */}
-          <Field label="Headline" prop="heading" />
-          <Field label="Subheadline" prop="subheading" type="textarea" />
-          <Field label="Text" prop="text" type={component.type === 'richtext' ? 'textarea' : 'text'} />
-          <Field label="Brand" prop="brand" />
-          <Field label="Quote" prop="quote" type="textarea" />
-          <Field label="Author" prop="author" />
-          <Field label="Role" prop="role" />
+          {/* Component-specific fields */}
+          {renderTypeSpecificProperties()}
 
-          {/* Buttons */}
-          <Field label="Primary Button" prop="buttonText" />
-          <Field label="Secondary Button" prop="secondaryButtonText" />
-          <Field label="Button URL" prop="url" />
-
-          {/* Form */}
-          <Field label="Placeholder" prop="placeholder" />
-          <Field label="Alt Text" prop="alt" />
-          <Field label="Copyright" prop="copyright" />
-
-          {/* URLs */}
-          <Field label="Image Source" prop="src" />
-
-          {/* Array editors */}
-          {p.links && <StringArrayEditor label="Navigation Links" prop="links" />}
-          {p.fields && <StringArrayEditor label="Form Fields" prop="fields" />}
-          {p.images && <StringArrayEditor label="Gallery Images" prop="images" />}
-          {p.items && <ItemsEditor label="Items" prop="items" />}
-          {p.plans && <PlansEditor />}
-
-          {/* Colors */}
+          {/* Colors (shared across all types) */}
           <Field label="Background" prop="bgColor" type="color" />
           <Field label="Text Color" prop="textColor" type="color" />
           <Field label="Accent Color" prop="accentColor" type="color" />
@@ -354,23 +549,38 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
           {/* Text Align */}
           {p.textAlign !== undefined && <Field label="Text Align" prop="textAlign" type="select-align" />}
 
-          {/* Padding Y */}
-          {p.paddingY !== undefined && <Field label="Padding Y" prop="paddingY" type="range" />}
+          {/* Padding slider */}
+          {p.padding !== undefined && (
+            <div className="mb-3">
+              <label className="mb-1 block text-[11px] font-medium text-editor-text">Padding</label>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0" max="100" value={parseInt(p.padding) || 20} onChange={e => update('padding', e.target.value + 'px')} className="flex-1 accent-editor-accent" />
+                <span className="text-[10px] text-editor-text-bright w-10 text-right">{p.padding}</span>
+              </div>
+            </div>
+          )}
 
-          {/* Sizing */}
-          <Field label="Font Size" prop="fontSize" />
-          <Field label="Font Weight" prop="fontWeight" />
-          <Field label="Width" prop="width" />
-          <Field label="Height" prop="height" />
-          <Field label="Padding" prop="padding" />
-          <Field label="Margin" prop="margin" />
-          <Field label="Border Radius" prop="borderRadius" />
-          <Field label="Max Width" prop="maxWidth" />
-          <Field label="Gap" prop="gap" />
-          <Field label="Thickness" prop="thickness" />
-          <Field label="Size" prop="size" />
-          <Field label="Columns" prop="columns" type="number" />
-          <Field label="Level" prop="level" />
+          {/* Padding Y slider */}
+          {p.paddingY !== undefined && (
+            <div className="mb-3">
+              <label className="mb-1 block text-[11px] font-medium text-editor-text">Padding Y</label>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0" max="200" value={parseInt(p.paddingY) || 0} onChange={e => update('paddingY', e.target.value + 'px')} className="flex-1 accent-editor-accent" />
+                <span className="text-[10px] text-editor-text-bright w-10 text-right">{p.paddingY}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Border Radius slider */}
+          {p.borderRadius !== undefined && (
+            <div className="mb-3">
+              <label className="mb-1 block text-[11px] font-medium text-editor-text">Border Radius</label>
+              <div className="flex items-center gap-3">
+                <input type="range" min="0" max="50" value={parseInt(p.borderRadius) || 8} onChange={e => update('borderRadius', e.target.value + 'px')} className="flex-1 accent-editor-accent" />
+                <span className="text-[10px] text-editor-text-bright w-10 text-right">{p.borderRadius}</span>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
