@@ -1,20 +1,18 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft, Lock, Github, Check, AlertCircle, Rocket } from 'lucide-react';
+import { ArrowLeft, Lock, Rocket, Check, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/lib/AuthContext';
 
 export default function Settings() {
   const navigate = useNavigate();
   const { user, changePassword } = useAuth();
-  const [tab, setTab] = useState<'password' | 'github' | 'vercel'>('password');
+  const [tab, setTab] = useState<'password' | 'vercel'>('password');
   const [currentPass, setCurrentPass] = useState('');
   const [newPass, setNewPass] = useState('');
   const [confirmPass, setConfirmPass] = useState('');
   const [passError, setPassError] = useState('');
-  const [ghToken, setGhToken] = useState(localStorage.getItem('webcraft_gh_token') || '');
-  const [ghConnected, setGhConnected] = useState(!!localStorage.getItem('webcraft_gh_token'));
   const [vercelToken, setVercelToken] = useState(localStorage.getItem('webcraft_vercel_token') || '');
   const [vercelConnected, setVercelConnected] = useState(!!localStorage.getItem('webcraft_vercel_token'));
 
@@ -34,18 +32,6 @@ export default function Settings() {
     }
   };
 
-  const handleGithubSave = () => {
-    if (ghToken.trim()) {
-      localStorage.setItem('webcraft_gh_token', ghToken.trim());
-      setGhConnected(true);
-      toast.success('GitHub connected!');
-    } else {
-      localStorage.removeItem('webcraft_gh_token');
-      setGhConnected(false);
-      toast.success('GitHub disconnected');
-    }
-  };
-
   const handleVercelSave = () => {
     if (vercelToken.trim()) {
       localStorage.setItem('webcraft_vercel_token', vercelToken.trim());
@@ -60,7 +46,6 @@ export default function Settings() {
 
   const tabs = [
     { id: 'password' as const, label: 'Password', icon: Lock },
-    { id: 'github' as const, label: 'GitHub', icon: Github },
     { id: 'vercel' as const, label: 'Vercel', icon: Rocket },
   ];
 
@@ -111,27 +96,6 @@ export default function Settings() {
                 Update Password
               </button>
             </form>
-          )}
-
-          {tab === 'github' && (
-            <div className="space-y-4">
-              <h2 className="mb-4 text-lg font-bold text-landing-bright">GitHub Integration</h2>
-              {ghConnected && (
-                <div className="flex items-center gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2.5">
-                  <Check className="h-4 w-4 text-green-400" />
-                  <p className="text-xs text-green-300">GitHub connected</p>
-                </div>
-              )}
-              <div>
-                <label className="mb-1.5 block text-xs font-medium text-landing-text">Personal Access Token</label>
-                <input type="password" value={ghToken} onChange={e => setGhToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxx"
-                  className="w-full rounded-lg border border-landing-border bg-landing-bg px-4 py-2.5 text-sm text-landing-bright focus:border-primary focus:outline-none" />
-                <p className="mt-1 text-xs text-landing-text/60">Generate at github.com → Settings → Developer settings → Personal access tokens</p>
-              </div>
-              <button onClick={handleGithubSave} className="rounded-lg bg-primary px-6 py-2.5 text-sm font-semibold text-primary-foreground hover:opacity-90">
-                {ghConnected ? 'Update Token' : 'Connect GitHub'}
-              </button>
-            </div>
           )}
 
           {tab === 'vercel' && (
