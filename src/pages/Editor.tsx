@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Github, Rocket, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Rocket, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSiteById, updateSite, publishSite, deserializeComponents, serializeComponents, deserializePages, serializePages, type SitePage } from '@/lib/siteStorage';
 import { exportToHTML } from '@/lib/htmlExporter';
@@ -14,15 +14,13 @@ import { ThemePicker } from '@/components/editor/ThemePicker';
 import { PreviewModal } from '@/components/editor/PreviewModal';
 import { ExportModal } from '@/components/editor/ExportModal';
 import { PublishModal } from '@/components/editor/PublishModal';
-import { GitHubModal } from '@/components/editor/GitHubModal';
 import { VercelDeployModal } from '@/components/editor/VercelDeployModal';
 
-// Full editor state snapshot for undo/redo (includes pages)
 interface EditorSnapshot {
   homeComponents: any[];
   pages: SitePage[];
   activePage: string;
-  components: any[]; // current visible components
+  components: any[];
 }
 
 export default function Editor() {
@@ -42,12 +40,10 @@ export default function Editor() {
   const [showPreview, setShowPreview] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
-  const [showGitHub, setShowGitHub] = useState(false);
   const [showVercel, setShowVercel] = useState(false);
   const [showAddPage, setShowAddPage] = useState(false);
   const [newPageName, setNewPageName] = useState('');
 
-  // Undo/redo with full snapshots
   const [history, setHistory] = useState<EditorSnapshot[]>([]);
   const [historyIdx, setHistoryIdx] = useState(-1);
   const skipHistoryRef = useRef(false);
@@ -76,6 +72,16 @@ export default function Editor() {
     setHistoryIdx(0);
   }, [id]);
 
+  // Sync navbar links with pages
+  const syncNavbarLinks = useCallback((comps: any[], pageNames: string[]) => {
+    return comps.map(c => {
+      if (c.type === 'navbar') {
+        return { ...c, props: { ...c.props, links: pageNames.filter(n => n !== 'home').map(n => n.charAt(0).toUpperCase() + n.slice(1)) } };
+      }
+      return c;
+    });
+  }, []);
+
   const pushHistory = useCallback((snap: EditorSnapshot) => {
     setHistory(prev => {
       const trimmed = prev.slice(0, historyIdx + 1);
@@ -87,7 +93,6 @@ export default function Editor() {
 
   const switchPage = (pageName: string) => {
     if (pageName === activePage) return;
-    // Save current page's components
     let newHome = homeComponents;
     let newPages = pages;
     if (activePage === 'home') {
@@ -97,7 +102,6 @@ export default function Editor() {
       newPages = pages.map(p => p.name === activePage ? { ...p, components } : p);
       setPages(newPages);
     }
-    // Load new page
     let newComps: any[];
     if (pageName === 'home') {
       newComps = newHome;
@@ -108,10 +112,11 @@ export default function Editor() {
     setComponents(newComps);
     setActivePage(pageName);
     setSelectedId(null);
-    // Push snapshot
     const snap: EditorSnapshot = { homeComponents: newHome, pages: newPages, activePage: pageName, components: newComps };
     pushHistory(snap);
   };
+
+  const allPageNames = ['home', ...pages.map(p => p.name)];
 
   const addPage = () => {
     const name = newPageName.trim();
@@ -129,15 +134,26 @@ export default function Editor() {
     ];
     const newPages = [...pages, { name, components: defaultComps }];
     setPages(newPages);
+    // Sync navbar links across all pages
+    const updatedPageNames = ['home', ...newPages.map(p => p.name)];
+    const syncedHome = syncNavbarLinks(activePage === 'home' ? components : homeComponents, updatedPageNames);
+    if (activePage === 'home') {
+      setComponents(syncedHome);
+      setHomeComponents(syncedHome);
+    } else {
+      setHomeComponents(syncedHome);
+    }
+    const syncedPages = newPages.map(p => ({ ...p, components: syncNavbarLinks(p.components, updatedPageNames) }));
+    setPages(syncedPages);
+
     setShowAddPage(false);
     setNewPageName('');
     toast.success(`Page "${name}" added`);
-    pushHistory({ homeComponents, pages: newPages, activePage, components });
+    pushHistory({ homeComponents: syncedHome, pages: syncedPages, activePage, components: activePage === 'home' ? syncedHome : components });
   };
 
   const deletePage = (pageName: string) => {
     if (pageName === 'home') return;
-    // Push current state before delete for undo
     pushHistory(makeSnapshot());
     let newComps = components;
     if (activePage === pageName) {
@@ -147,13 +163,20 @@ export default function Editor() {
     }
     const newPages = pages.filter(p => p.name !== pageName);
     setPages(newPages);
+    // Sync navbar links
+    const updatedPageNames = ['home', ...newPages.map(p => p.name)];
+    const syncedHome = syncNavbarLinks(activePage === pageName ? homeComponents : (activePage === 'home' ? newComps : homeComponents), updatedPageNames);
+    setHomeComponents(syncedHome);
+    if (activePage === pageName || activePage === 'home') setComponents(syncedHome);
+    const syncedPages = newPages.map(p => ({ ...p, components: syncNavbarLinks(p.components, updatedPageNames) }));
+    setPages(syncedPages);
+
     toast.success(`Page "${pageName}" deleted (Ctrl+Z to restore)`);
-    // Push the post-delete state
     pushHistory({
-      homeComponents: activePage === pageName ? homeComponents : (activePage === 'home' ? newComps : homeComponents),
-      pages: newPages,
+      homeComponents: syncedHome,
+      pages: syncedPages,
       activePage: activePage === pageName ? 'home' : activePage,
-      components: activePage === pageName ? homeComponents : newComps,
+      components: activePage === pageName ? syncedHome : newComps,
     });
   };
 
@@ -334,8 +357,6 @@ export default function Editor() {
   const currentHomeComps = activePage === 'home' ? components : homeComponents;
   const html = exportToHTML(currentHomeComps, title, getCurrentPages());
 
-  const allPageNames = ['home', ...pages.map(p => p.name)];
-
   return (
     <div className="flex h-screen flex-col bg-editor-bg">
       {/* Top toolbar */}
@@ -375,9 +396,6 @@ export default function Editor() {
           <button onClick={() => setShowExport(true)} className="flex items-center gap-1 rounded-lg border border-editor-border px-2.5 py-1 text-xs text-editor-text hover:bg-editor-hover hover:text-editor-text-bright">
             <Download className="h-3.5 w-3.5" /> Export
           </button>
-          <button onClick={() => setShowGitHub(true)} className="flex items-center gap-1 rounded-lg border border-editor-border px-2.5 py-1 text-xs text-editor-text hover:bg-editor-hover hover:text-editor-text-bright">
-            <Github className="h-3.5 w-3.5" /> GitHub
-          </button>
           <button onClick={handleSave} className="flex items-center gap-1 rounded-lg border border-editor-border px-2.5 py-1 text-xs text-editor-text hover:bg-editor-hover hover:text-editor-text-bright">
             <Save className="h-3.5 w-3.5" /> Save
           </button>
@@ -414,7 +432,7 @@ export default function Editor() {
 
       {/* Main area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left palette - full height with scroll */}
+        {/* Left palette */}
         <div className="w-56 shrink-0 border-r border-editor-border bg-editor-sidebar flex flex-col h-full">
           <div className="border-b border-editor-border px-3 py-2.5 shrink-0">
             <h3 className="text-xs font-semibold uppercase tracking-wider text-editor-text">Components</h3>
@@ -489,7 +507,6 @@ export default function Editor() {
       {showPreview && <PreviewModal html={html} onClose={() => setShowPreview(false)} />}
       {showExport && <ExportModal html={html} title={title} onClose={() => setShowExport(false)} />}
       {showPublish && <PublishModal slug={site.slug} onClose={() => setShowPublish(false)} />}
-      {showGitHub && <GitHubModal html={html} title={title} onClose={() => setShowGitHub(false)} />}
       {showVercel && <VercelDeployModal html={html} title={title} onClose={() => setShowVercel(false)} />}
     </div>
   );

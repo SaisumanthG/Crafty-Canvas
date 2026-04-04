@@ -4,10 +4,25 @@ interface CanvasComponentProps {
   component: any;
   isSelected: boolean;
   onClick: () => void;
+  onNavigate?: (page: string) => void;
 }
+
+const DEFAULT_IMAGES: Record<string, string> = {
+  hero: 'https://images.unsplash.com/photo-1531297484001-80022131f5a1?w=800&h=400&fit=crop',
+  features: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=400&fit=crop',
+  stats: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop',
+  testimonial: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=800&h=400&fit=crop',
+  cta: 'https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=800&h=400&fit=crop',
+  pricing: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&h=400&fit=crop',
+};
 
 export function CanvasComponent({ component, isSelected, onClick }: CanvasComponentProps) {
   const p = component.props;
+
+  const bgWithImage = (bgColor: string, bgImage?: string) => {
+    if (bgImage) return `url(${bgImage}) center/cover no-repeat, ${bgColor}`;
+    return bgColor;
+  };
 
   const renderInner = () => {
     switch (component.type) {
@@ -15,12 +30,12 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         return (
           <div className="flex items-center justify-between px-6 py-4" style={{ background: p.bgColor, color: p.textColor }}>
             <strong className="text-lg">{p.brand}</strong>
-            <div className="flex gap-4 text-sm">{(p.links || []).map((l: string, i: number) => <span key={i} className="opacity-70">{l}</span>)}</div>
+            <div className="flex gap-4 text-sm">{(p.links || []).map((l: string, i: number) => <span key={i} className="opacity-70 cursor-pointer hover:opacity-100">{l}</span>)}</div>
           </div>
         );
       case 'hero':
         return (
-          <div className="px-6 text-center" style={{ background: p.bgImage ? `url(${p.bgImage}) center/cover no-repeat, ${p.bgColor}` : p.bgColor, color: p.textColor, textAlign: p.textAlign || 'center', paddingTop: p.paddingY || '80px', paddingBottom: p.paddingY || '80px' }}>
+          <div className="px-6 text-center" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor, textAlign: p.textAlign || 'center', paddingTop: p.paddingY || '80px', paddingBottom: p.paddingY || '80px' }}>
             <h1 className="mb-4 text-4xl font-extrabold">{p.heading}</h1>
             <p className="mx-auto mb-6 max-w-lg text-base opacity-70">{p.subheading}</p>
             <div className="flex items-center justify-center gap-3">
@@ -31,7 +46,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         );
       case 'features':
         return (
-          <div className="px-6 py-16" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="px-6 py-16" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             <h2 className="mb-8 text-center text-2xl font-bold">{p.heading}</h2>
             <div className="grid grid-cols-3 gap-4">
               {(p.items || []).map((it: any, i: number) => (
@@ -45,7 +60,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         );
       case 'stats':
         return (
-          <div className="grid grid-cols-3 gap-4 px-6 py-12" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="grid grid-cols-3 gap-4 px-6 py-12" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             {(p.items || []).map((it: any, i: number) => (
               <div key={i} className="text-center">
                 <div className="text-3xl font-extrabold" style={{ color: p.accentColor }}>{it.value}</div>
@@ -56,7 +71,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         );
       case 'testimonial':
         return (
-          <div className="px-6 py-12 text-center" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="px-6 py-12 text-center" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             <p className="mx-auto max-w-md text-lg italic">{p.quote}</p>
             <p className="mt-4 font-semibold">{p.author}</p>
             <p className="text-sm opacity-60">{p.role}</p>
@@ -64,7 +79,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
         );
       case 'cta':
         return (
-          <div className="px-6 py-16 text-center" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="px-6 py-16 text-center" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             <h2 className="mb-3 text-3xl font-bold">{p.heading}</h2>
             <p className="mb-6 opacity-70">{p.subheading}</p>
             {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{p.buttonText}</button>}
@@ -80,6 +95,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
                   <h3 className="mb-1 text-lg font-semibold">{pl.name}</h3>
                   <div className="mb-4 text-3xl font-extrabold" style={{ color: p.accentColor }}>{pl.price}</div>
                   <ul className="space-y-2 text-sm">{(pl.features || []).map((f: string, j: number) => <li key={j} className="opacity-70">✓ {f}</li>)}</ul>
+                  {pl.ctaText && <button className="mt-4 w-full rounded-lg py-2 text-sm font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{pl.ctaText}</button>}
                 </div>
               ))}
             </div>
@@ -90,7 +106,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
           <div className="px-6 py-8" style={{ background: p.bgColor, color: p.textColor }}>
             <div className="flex items-center justify-between">
               <span className="font-medium">{p.brand}</span>
-              <div className="flex gap-3 text-sm">{(p.links || []).map((l: string, i: number) => <span key={i} className="opacity-60">{l}</span>)}</div>
+              <div className="flex gap-3 text-sm">{(p.links || []).map((l: string, i: number) => <span key={i} className="opacity-60 cursor-pointer hover:opacity-100">{l}</span>)}</div>
             </div>
             <p className="mt-4 text-center text-xs opacity-40">{p.copyright}</p>
           </div>
