@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Layers, Palette, Zap, Download, Eye, Play, GripVertical, MousePointerClick, ArrowRight } from 'lucide-react';
+import { Layers, Palette, Zap, Download, Eye, Play, GripVertical, MousePointerClick, ArrowRight, Sparkles } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { useAuth } from '@/lib/AuthContext';
 

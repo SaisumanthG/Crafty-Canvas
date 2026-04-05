@@ -366,9 +366,7 @@ export default function Editor() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-editor-accent/20">
-              <Globe className="h-3.5 w-3.5 text-editor-accent" />
-            </div>
+            <img src="/src/assets/webcraft-logo.png" alt="WebCraft" className="h-6 w-6 rounded-md" />
             <input value={title} onChange={e => setTitle(e.target.value)} className="w-40 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm font-medium text-editor-text-bright hover:border-editor-border focus:border-editor-accent focus:outline-none" />
           </div>
           <span className="rounded-full bg-editor-hover px-2 py-0.5 text-[10px] text-editor-text">{components.length} blocks</span>
