@@ -49,15 +49,18 @@ const CATEGORY_IMAGES: Record<string, string> = {
   foodbev: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop',
 };
 
-function TemplateMiniPreview({ template }: { template: Template }) {
+function TemplateMiniPreview({ template, index }: { template: Template; index: number }) {
   const comps = template.getComponents();
   const hero = comps.find(c => c.type === 'hero');
   const accent = hero?.props?.accentColor || '#7C3AED';
-  const imgUrl = CATEGORY_IMAGES[template.category] || CATEGORY_IMAGES.saas;
+  const query = template.name.toLowerCase().replace(/[^a-z0-9 ]/g, '').split(' ').slice(0, 3).join(',');
+  const imgUrl = `https://images.unsplash.com/photo-${1460925895917 + index * 17}?w=400&h=300&fit=crop&q=60`;
+  const fallbackUrl = CATEGORY_IMAGES[template.category] || CATEGORY_IMAGES.saas;
 
   return (
     <div className="relative h-full w-full overflow-hidden rounded-t-lg">
-      <img src={imgUrl} alt={template.name} className="h-full w-full object-cover" loading="lazy" />
+      <img src={fallbackUrl} alt={template.name} className="h-full w-full object-cover" loading="lazy"
+        style={{ filter: `hue-rotate(${(index * 37) % 360}deg) saturate(${0.8 + (index % 5) * 0.1})` }} />
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
       <div className="absolute bottom-2 left-3 right-3">
         <div className="h-2 w-12 rounded" style={{ background: accent }} />
