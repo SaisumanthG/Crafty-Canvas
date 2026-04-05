@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, User, FolderOpen, Settings, LogOut, Sun, Moon, ChevronDown } from 'lucide-react';
+import { User, FolderOpen, Settings, LogOut, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useAppTheme } from '@/lib/ThemeContext';
+import webcraftLogo from '@/assets/webcraft-logo.png';
 
 export function Navbar() {
   const navigate = useNavigate();
