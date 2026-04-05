@@ -82,27 +82,23 @@ function DebouncedInput({ value, onChange, type = 'text', className, placeholder
   value: string; onChange: (v: string) => void; type?: string; className?: string; placeholder?: string; rows?: number;
 }) {
   const [local, setLocal] = useState(value);
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const focusedRef = useRef(false);
 
-  useEffect(() => { setLocal(value); }, [value]);
+  useEffect(() => {
+    if (!focusedRef.current) setLocal(value);
+  }, [value]);
 
-  const commit = useCallback((v: string) => {
-    clearTimeout(timerRef.current);
-    onChange(v);
-  }, [onChange]);
-
-  const handleChange = (v: string) => {
-    setLocal(v);
-    clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => commit(v), 400);
+  const handleBlur = () => {
+    focusedRef.current = false;
+    if (local !== value) onChange(local);
   };
 
-  const handleBlur = () => { clearTimeout(timerRef.current); commit(local); };
+  const handleFocus = () => { focusedRef.current = true; };
 
   if (type === 'textarea' || rows) {
-    return <textarea value={local} onChange={e => handleChange(e.target.value)} onBlur={handleBlur} rows={rows || 3} className={className} placeholder={placeholder} />;
+    return <textarea value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur} onFocus={handleFocus} rows={rows || 3} className={className} placeholder={placeholder} />;
   }
-  return <input type={type} value={local} onChange={e => handleChange(e.target.value)} onBlur={handleBlur} className={className} placeholder={placeholder} />;
+  return <input type={type} value={local} onChange={e => setLocal(e.target.value)} onBlur={handleBlur} onFocus={handleFocus} className={className} placeholder={placeholder} />;
 }
 
 export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: PropertyPanelProps) {
