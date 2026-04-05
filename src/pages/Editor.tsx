@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Rocket, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Download, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Rocket, Plus, X } from 'lucide-react';
+import webcraftLogo from '@/assets/webcraft-logo.png';
 import { toast } from 'sonner';
 import { getSiteById, updateSite, publishSite, deserializeComponents, serializeComponents, deserializePages, serializePages, type SitePage } from '@/lib/siteStorage';
 import { exportToHTML } from '@/lib/htmlExporter';
