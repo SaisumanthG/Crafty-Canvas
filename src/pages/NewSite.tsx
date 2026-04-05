@@ -205,7 +205,7 @@ export default function NewSite() {
                   onDoubleClick={() => handleDoubleClickCreate(t)}
                   className="group overflow-hidden rounded-xl border border-landing-border bg-landing-surface text-left transition-all hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5">
                   <div className="aspect-[4/3] overflow-hidden">
-                    <TemplateMiniPreview template={t} />
+                    <TemplateMiniPreview template={t} index={i} />
                   </div>
                   <div className="border-t border-landing-border p-3">
                     <h3 className="mb-0.5 text-sm font-semibold text-landing-bright group-hover:text-primary transition-colors">{t.name}</h3>
