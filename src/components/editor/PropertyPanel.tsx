@@ -355,7 +355,7 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
       return (
         <>
           <Field label="Headline" prop="heading" />
-          <Field label="Text" prop="text" type="textarea" />
+          <Field label="Subheadline" prop="subheading" type="textarea" />
           <Field label="Button Text" prop="buttonText" />
           <Field label="Button URL" prop="url" />
         </>

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, User, FolderOpen, Settings, LogOut, Sun, Moon, ChevronDown } from 'lucide-react';
+import { User, FolderOpen, Settings, LogOut, Sun, Moon, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/lib/AuthContext';
 import { useAppTheme } from '@/lib/ThemeContext';
+import webcraftLogo from '@/assets/webcraft-logo.png';
 
 export function Navbar() {
   const navigate = useNavigate();
@@ -21,9 +22,7 @@ export function Navbar() {
     <nav className="border-b border-landing-border bg-landing-bg/80 backdrop-blur-sm px-6 py-3">
       <div className="mx-auto flex max-w-6xl items-center justify-between">
         <button onClick={() => navigate('/')} className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Sparkles className="h-4 w-4 text-primary-foreground" />
-          </div>
+          <img src={webcraftLogo} alt="WebCraft" className="h-8 w-8 rounded-lg" />
           <span className="text-lg font-bold text-landing-bright">WebCraft</span>
         </button>
 

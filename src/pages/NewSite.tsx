@@ -29,35 +29,38 @@ const categories = [
   { id: 'foodbev', label: 'Food & Beverage', icon: UtensilsCrossed },
 ];
 
+const CATEGORY_IMAGES: Record<string, string> = {
+  saas: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=400&h=300&fit=crop',
+  portfolio: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop',
+  business: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&h=300&fit=crop',
+  restaurant: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&h=300&fit=crop',
+  wellness: 'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=400&h=300&fit=crop',
+  fitness: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=300&fit=crop',
+  travel: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=400&h=300&fit=crop',
+  health: 'https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=300&fit=crop',
+  education: 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=400&h=300&fit=crop',
+  realestate: 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&h=300&fit=crop',
+  event: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop',
+  fashion: 'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop',
+  hotel: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?w=400&h=300&fit=crop',
+  nonprofit: 'https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?w=400&h=300&fit=crop',
+  agency: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=400&h=300&fit=crop',
+  techlanding: 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=400&h=300&fit=crop',
+  foodbev: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=400&h=300&fit=crop',
+};
+
 function TemplateMiniPreview({ template }: { template: Template }) {
   const comps = template.getComponents();
-  const navbar = comps.find(c => c.type === 'navbar');
   const hero = comps.find(c => c.type === 'hero');
-  const bg = hero?.props?.bgColor || navbar?.props?.bgColor || '#0A0A0A';
-  const accent = hero?.props?.accentColor || navbar?.props?.accentColor || '#7C3AED';
-  const textCol = hero?.props?.textColor || '#FFFFFF';
+  const accent = hero?.props?.accentColor || '#7C3AED';
+  const imgUrl = CATEGORY_IMAGES[template.category] || CATEGORY_IMAGES.saas;
 
   return (
-    <div className="h-full w-full overflow-hidden rounded-t-lg" style={{ background: bg }}>
-      <div className="flex items-center justify-between px-3 py-1.5" style={{ background: navbar?.props?.bgColor || bg }}>
-        <div className="h-1.5 w-10 rounded" style={{ background: accent }} />
-        <div className="flex gap-1">
-          {[1,2,3].map(i => <div key={i} className="h-1 w-5 rounded" style={{ background: textCol, opacity: 0.3 }} />)}
-        </div>
-      </div>
-      <div className="px-3 py-3">
-        <div className="mb-1 h-2 w-3/4 rounded" style={{ background: textCol, opacity: 0.9 }} />
-        <div className="mb-1 h-1.5 w-full rounded" style={{ background: textCol, opacity: 0.3 }} />
-        <div className="mb-2 h-1.5 w-2/3 rounded" style={{ background: textCol, opacity: 0.3 }} />
-        <div className="h-3 w-12 rounded" style={{ background: accent }} />
-      </div>
-      <div className="flex gap-1 px-3 pb-1">
-        {[1,2,3].map(i => (
-          <div key={i} className="flex-1 rounded p-1" style={{ background: textCol, opacity: 0.05 }}>
-            <div className="mb-0.5 h-1 w-full rounded" style={{ background: accent, opacity: 0.5 }} />
-            <div className="h-0.5 w-full rounded" style={{ background: textCol, opacity: 0.2 }} />
-          </div>
-        ))}
+    <div className="relative h-full w-full overflow-hidden rounded-t-lg">
+      <img src={imgUrl} alt={template.name} className="h-full w-full object-cover" loading="lazy" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      <div className="absolute bottom-2 left-3 right-3">
+        <div className="h-2 w-12 rounded" style={{ background: accent }} />
       </div>
     </div>
   );

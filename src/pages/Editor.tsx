@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
-import { ArrowLeft, Save, Eye, Download, Globe, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Rocket, Plus, X } from 'lucide-react';
+import { ArrowLeft, Save, Eye, Download, Undo2, Redo2, Monitor, Tablet, Smartphone, Palette, Rocket, Plus, X } from 'lucide-react';
+import webcraftLogo from '@/assets/webcraft-logo.png';
 import { toast } from 'sonner';
 import { getSiteById, updateSite, publishSite, deserializeComponents, serializeComponents, deserializePages, serializePages, type SitePage } from '@/lib/siteStorage';
 import { exportToHTML } from '@/lib/htmlExporter';
@@ -366,9 +367,7 @@ export default function Editor() {
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2">
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-editor-accent/20">
-              <Globe className="h-3.5 w-3.5 text-editor-accent" />
-            </div>
+            <img src={webcraftLogo} alt="WebCraft" className="h-6 w-6 rounded-md" />
             <input value={title} onChange={e => setTitle(e.target.value)} className="w-40 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-sm font-medium text-editor-text-bright hover:border-editor-border focus:border-editor-accent focus:outline-none" />
           </div>
           <span className="rounded-full bg-editor-hover px-2 py-0.5 text-[10px] text-editor-text">{components.length} blocks</span>
