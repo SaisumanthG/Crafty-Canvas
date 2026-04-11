@@ -249,6 +249,10 @@ export function PropertyPanel({ component, onChange, onDuplicate, onDelete }: Pr
                 placeholder="Plan name" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
               <DebouncedInput value={plan.price || ''} onChange={v => { const n = [...plans]; n[i] = { ...n[i], price: v }; update('plans', n); }}
                 placeholder="Price" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+              <DebouncedInput value={plan.ctaText || ''} onChange={v => { const n = [...plans]; n[i] = { ...n[i], ctaText: v }; update('plans', n); }}
+                placeholder="Button Text" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
+              <DebouncedInput value={plan.url || ''} onChange={v => { const n = [...plans]; n[i] = { ...n[i], url: v }; update('plans', n); }}
+                placeholder="Button URL" className="mb-1 w-full rounded border border-editor-border bg-editor-sidebar px-2 py-1 text-xs text-editor-text-bright focus:border-editor-accent focus:outline-none" />
               <div className="mt-1">
                 <div className="flex items-center justify-between mb-0.5">
                   <span className="text-[10px] text-editor-text">Features</span>
