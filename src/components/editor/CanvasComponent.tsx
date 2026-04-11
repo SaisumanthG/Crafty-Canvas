@@ -16,7 +16,7 @@ const DEFAULT_IMAGES: Record<string, string> = {
   pricing: 'https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800&h=400&fit=crop',
 };
 
-export function CanvasComponent({ component, isSelected, onClick }: CanvasComponentProps) {
+export function CanvasComponent({ component, isSelected, onClick, onNavigate }: CanvasComponentProps) {
   const p = component.props;
 
   const bgWithImage = (bgColor: string, bgImage?: string) => {
@@ -39,7 +39,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
             <h1 className="mb-4 text-4xl font-extrabold">{p.heading}</h1>
             <p className="mx-auto mb-6 max-w-lg text-base opacity-70">{p.subheading}</p>
             <div className="flex items-center justify-center gap-3">
-              {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{p.buttonText}</button>}
+              {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }} onClick={e => { e.stopPropagation(); if (p.url && onNavigate) onNavigate(p.url); }}>{p.buttonText}</button>}
               {p.secondaryButtonText && <button className="rounded-lg px-6 py-3 font-semibold border border-current opacity-80">{p.secondaryButtonText}</button>}
             </div>
           </div>
@@ -82,12 +82,12 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
           <div className="px-6 py-16 text-center" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             <h2 className="mb-3 text-3xl font-bold">{p.heading}</h2>
             <p className="mb-6 opacity-70">{p.subheading}</p>
-            {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{p.buttonText}</button>}
+            {p.buttonText && <button className="rounded-lg px-6 py-3 font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }} onClick={e => { e.stopPropagation(); if (p.url && onNavigate) onNavigate(p.url); }}>{p.buttonText}</button>}
           </div>
         );
       case 'pricing':
         return (
-          <div className="px-6 py-16" style={{ background: p.bgColor, color: p.textColor }}>
+          <div className="px-6 py-16" style={{ background: bgWithImage(p.bgColor, p.bgImage), color: p.textColor }}>
             <h2 className="mb-8 text-center text-2xl font-bold">{p.heading}</h2>
             <div className="grid grid-cols-3 gap-4">
               {(p.plans || []).map((pl: any, i: number) => (
@@ -95,7 +95,7 @@ export function CanvasComponent({ component, isSelected, onClick }: CanvasCompon
                   <h3 className="mb-1 text-lg font-semibold">{pl.name}</h3>
                   <div className="mb-4 text-3xl font-extrabold" style={{ color: p.accentColor }}>{pl.price}</div>
                   <ul className="space-y-2 text-sm">{(pl.features || []).map((f: string, j: number) => <li key={j} className="opacity-70">✓ {f}</li>)}</ul>
-                  {pl.ctaText && <button className="mt-4 w-full rounded-lg py-2 text-sm font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }}>{pl.ctaText}</button>}
+                  {pl.ctaText && <button className="mt-4 w-full rounded-lg py-2 text-sm font-semibold" style={{ background: p.buttonColor || p.accentColor, color: '#fff' }} onClick={e => { e.stopPropagation(); if (pl.url && onNavigate) onNavigate(pl.url); }}>{pl.ctaText}</button>}
                 </div>
               ))}
             </div>

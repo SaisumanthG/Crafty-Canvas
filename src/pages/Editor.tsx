@@ -460,6 +460,11 @@ export default function Editor() {
                               component={comp}
                               isSelected={comp.id === selectedId}
                               onClick={() => { setSelectedId(comp.id); setRightTab('props'); }}
+                              onNavigate={(url) => {
+                                const pageName = url.replace('/', '').toLowerCase();
+                                if (pageName === '' || pageName === 'home') switchPage('home');
+                                else if (allPageNames.includes(pageName)) switchPage(pageName);
+                              }}
                             />
                           </div>
                         )}
